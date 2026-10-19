@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'pantau_kendaraan_screen.dart';
 
 class AktivitasScreen extends StatefulWidget {
   const AktivitasScreen({super.key});
@@ -437,7 +438,13 @@ class _AktivitasScreenState extends State<AktivitasScreen> {
     return SizedBox(
       height: 54,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const PantauKendaraanScreen(),
+            ),
+          );
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFD6B56A),
           foregroundColor: const Color(0xFF1D1E1C),
@@ -1202,4 +1209,3 @@ class _NavProfilePainter extends CustomPainter {
   bool shouldRepaint(covariant _NavProfilePainter oldDelegate) =>
       oldDelegate.color != color;
 }
-
