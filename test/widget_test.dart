@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:parve_valet/page_tiketparkir.dart';
+import 'package:parve_valet/main.dart';
 
 void main() {
   testWidgets('AktivitasScreen renders ticket details accurately',
