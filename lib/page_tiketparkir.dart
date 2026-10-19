@@ -31,4 +31,3 @@ class ParveApp extends StatelessWidget {
     );
   }
 }
-
