@@ -29,14 +29,14 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      // Verify m-banking balance show/hide on Beranda
-      expect(find.text('Rp205.000'), findsOneWidget);
+      // Verify m-banking balance show/hide on Beranda (starts at Rp0)
+      expect(find.text('Rp0'), findsOneWidget);
       await tester.tap(find.byIcon(Icons.visibility_outlined));
       await tester.pump();
       expect(find.text('Rp •••••••'), findsOneWidget);
       await tester.tap(find.byIcon(Icons.visibility_off_outlined));
       await tester.pump();
-      expect(find.text('Rp205.000'), findsOneWidget);
+      expect(find.text('Rp0'), findsOneWidget);
 
       // 2. Open Profil tab -> Pengaturan -> activate Mode gelap
       await tester.tap(find.text('Profil'));
@@ -67,9 +67,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.text('Grand Indonesia'), findsOneWidget);
+      expect(find.text('Belum ada riwayat parkir'), findsOneWidget);
 
-      // 3. Open Dompet -> Isi saldo Rp100.000 -> balance becomes Rp305.000
+      // 3. Open Dompet -> Isi saldo Rp100.000 -> balance becomes Rp100.000
       await tester.tap(find.text('Dompet'));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
@@ -86,7 +86,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(AuthStore.walletBalance, 305000);
+      expect(AuthStore.walletBalance, 100000);
     },
   );
 }

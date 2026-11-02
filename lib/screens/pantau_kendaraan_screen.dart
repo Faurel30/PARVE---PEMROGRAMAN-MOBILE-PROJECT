@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/app_colors.dart';
+import '../models/auth_store.dart';
 import '../models/ticket_model.dart';
 import '../widgets/booking_step_header.dart';
 import '../widgets/ticket_card.dart';
@@ -23,10 +25,57 @@ class PantauKendaraanScreen extends StatefulWidget {
 
 class _PantauKendaraanScreenState extends State<PantauKendaraanScreen> {
   late ParkingTicket _ticket = widget.ticket;
+  Timer? _liveTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureLiveTimerStarted();
+    _liveTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _ticket.frozenElapsedSeconds == null) {
+        setState(() {});
+      }
+    });
+  }
+
+  void _ensureLiveTimerStarted() {
+    if (_ticket.parkingStartedAt == null &&
+        _ticket.frozenElapsedSeconds == null) {
+      _updateTicket(
+        _ticket.copyWith(
+          parkingStartedAt: DateTime.now().subtract(
+            Duration(hours: _ticket.parkingHours),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _liveTimer?.cancel();
+    super.dispose();
+  }
 
   void _updateTicket(ParkingTicket updated) {
     setState(() => _ticket = updated);
+    AuthStore.activeTicket = updated;
     widget.onTicketUpdated?.call(updated);
+  }
+
+  /// Simulasi percepat / reset timer agar user mudah menguji kenaikan akumulasi jam
+  void _adjustElapsedSimulation(Duration offset, {bool resetToZero = false}) {
+    if (_ticket.frozenElapsedSeconds != null) return;
+    final currentStart = _ticket.parkingStartedAt ?? DateTime.now();
+    final newStart = resetToZero
+        ? DateTime.now()
+        : currentStart.subtract(offset);
+    _updateTicket(
+      _ticket.copyWith(
+        parkingStartedAt: newStart,
+        parkingHours: _ticket.accumulatedHours,
+      ),
+    );
   }
 
   void _cycleVehicleCategory() {
@@ -152,7 +201,7 @@ class _PantauKendaraanScreenState extends State<PantauKendaraanScreen> {
               ),
               BookingStickyBottomBar(
                 icon: Icons.directions_car_outlined,
-                label: 'Ambil kendaraan',
+                label: 'Ambil kendaraan · ${_ticket.formattedParkingFee}',
                 onTap: _openAmbilKendaraan,
               ),
             ],
@@ -167,12 +216,24 @@ class _PantauKendaraanScreenState extends State<PantauKendaraanScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         StatusBadge(text: _ticket.statusText, isActive: true),
-        Text(
-          _ticket.lastUpdated,
-          style: TextStyle(
-            color: AppColors.textMuted,
-            fontSize: 11.5,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.timer_outlined,
+              size: 13.5,
+              color: AppColors.navActive,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Timer aktif • ${_ticket.liveStopwatchText}',
+              style: TextStyle(
+                color: AppColors.navActive,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -307,6 +368,7 @@ class _PantauKendaraanScreenState extends State<PantauKendaraanScreen> {
   }
 
   Widget _buildVehicleLocationCard() {
+    final accHours = _ticket.accumulatedHours;
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
@@ -315,6 +377,7 @@ class _PantauKendaraanScreenState extends State<PantauKendaraanScreen> {
         border: Border.all(color: AppColors.cardBorder, width: 1.2),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           VehicleSummaryRow(
             ticket: _ticket,
@@ -331,10 +394,183 @@ class _PantauKendaraanScreenState extends State<PantauKendaraanScreen> {
           const SizedBox(height: 11),
           TicketDetailRow(
             label: 'Durasi saat ini',
-            value: _ticket.currentDuration,
+            value: _ticket.liveDurationText,
             isHighlight: true,
           ),
+          const SizedBox(height: 14),
+          _buildLiveTimerAccumulationBanner(accHours),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLiveTimerAccumulationBanner(int accHours) {
+    final isLocked = _ticket.frozenElapsedSeconds != null;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.heroDark,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: isLocked
+                          ? AppColors.goldText
+                          : const Color(0xFF67D49B),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    isLocked
+                        ? 'TIMER SELESAI DIHITUNG'
+                        : 'TIMER PARKIR BERJALAN',
+                    style: const TextStyle(
+                      color: Color(0xFFB5B8B2),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                '${_ticket.formattedHourlyRate} / jam',
+                style: const TextStyle(
+                  color: AppColors.goldText,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _ticket.liveStopwatchText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 25,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Dibulatkan $accHours jam × ${_ticket.formattedHourlyRate}',
+                    style: const TextStyle(
+                      color: Color(0xFFA0A39E),
+                      fontSize: 11.4,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text(
+                    'Akumulasi parkir',
+                    style: TextStyle(
+                      color: Color(0xFFA0A39E),
+                      fontSize: 11.0,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _ticket.formattedParkingFee,
+                    style: const TextStyle(
+                      color: AppColors.goldText,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (!isLocked) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Divider(height: 1, thickness: 1, color: Color(0xFF343832)),
+            ),
+            Row(
+              children: [
+                const Text(
+                  'Uji waktu:',
+                  style: TextStyle(
+                    color: Color(0xFF989C95),
+                    fontSize: 11.0,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _buildSimButton(
+                  label: 'Mulai 00:00',
+                  onTap: () => _adjustElapsedSimulation(
+                    Duration.zero,
+                    resetToZero: true,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _buildSimButton(
+                  label: '+30 mnt',
+                  onTap: () => _adjustElapsedSimulation(
+                    const Duration(minutes: 30),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                _buildSimButton(
+                  label: '+1 jam',
+                  onTap: () => _adjustElapsedSimulation(
+                    const Duration(hours: 1),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSimButton({
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2D312C),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF434841)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFE2E5DF),
+            fontSize: 10.8,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

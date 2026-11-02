@@ -10,16 +10,24 @@ import 'kendaraan_saya_screen.dart';
 import 'konfirmasi_bayar_screen.dart';
 
 class PesanValetScreen extends StatefulWidget {
-  const PesanValetScreen({super.key});
+  final ValetLocation? initialLocation;
+
+  const PesanValetScreen({super.key, this.initialLocation});
 
   @override
   State<PesanValetScreen> createState() => _PesanValetScreenState();
 }
 
 class _PesanValetScreenState extends State<PesanValetScreen> {
-  ValetLocation _selectedLocation = ValetLocation.presets.first;
+  late ValetLocation _selectedLocation =
+      widget.initialLocation ?? ValetLocation.presets.first;
   late String _selectedVehicleId = AuthStore.primaryVehicle.id;
-  String _arrivalHour = '13.00';
+  late String _arrivalHour = () {
+    final now = DateTime.now();
+    final hh = now.hour.toString().padLeft(2, '0');
+    final mm = now.minute.toString().padLeft(2, '0');
+    return '$hh.$mm';
+  }();
 
   SavedVehicle get _selectedVehicle {
     return AuthStore.savedVehicles.firstWhere(
@@ -55,31 +63,59 @@ class _PesanValetScreenState extends State<PesanValetScreen> {
               ),
               for (final loc in ValetLocation.presets)
                 ListTile(
+                  enabled: loc.canBookValet,
                   leading: Icon(
                     Icons.location_on_outlined,
-                    color: AppColors.navActive,
+                    color: loc.canBookValet
+                        ? AppColors.navActive
+                        : AppColors.textMuted,
                   ),
                   title: Text(
                     loc.name,
                     style: TextStyle(
-                      color: AppColors.darkPrimary,
+                      color: loc.canBookValet
+                          ? AppColors.darkPrimary
+                          : AppColors.textMuted,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   subtitle: Text(
-                    loc.lobbySubtitle,
-                    style: TextStyle(color: AppColors.textMuted),
+                    loc.canBookValet
+                        ? '${loc.lobbySubtitle} • ${loc.availableSlots}/${loc.totalSlots} slot tersedia'
+                        : '${loc.lobbySubtitle} • ${loc.parkingStatusLabel}',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 12.2),
                   ),
                   trailing: loc.id == _selectedLocation.id
                       ? Icon(
                           Icons.check_circle_rounded,
                           color: AppColors.navActive,
                         )
+                      : (!loc.canBookValet
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceSubtle,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                loc.parkingStatusLabel,
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 10.8,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            )
+                          : null),
+                  onTap: loc.canBookValet
+                      ? () {
+                          setState(() => _selectedLocation = loc);
+                          Navigator.pop(ctx);
+                        }
                       : null,
-                  onTap: () {
-                    setState(() => _selectedLocation = loc);
-                    Navigator.pop(ctx);
-                  },
                 ),
             ],
           ),
@@ -229,13 +265,39 @@ class _PesanValetScreenState extends State<PesanValetScreen> {
   }
 
   void _goToPayment() {
+    if (AuthStore.savedVehicles.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Silakan tambahkan kendaraan Anda terlebih dahulu sebelum memesan valet.',
+          ),
+          action: SnackBarAction(
+            label: 'Tambah',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const KendaraanSayaScreen(),
+                ),
+              );
+              if (mounted && AuthStore.savedVehicles.isNotEmpty) {
+                setState(() {
+                  _selectedVehicleId = AuthStore.primaryVehicle.id;
+                });
+              }
+            },
+          ),
+        ),
+      );
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => KonfirmasiBayarScreen(
           location: _selectedLocation,
           vehicle: _selectedVehicle,
-          arrivalDateLabel: '8 Okt 2026',
+          arrivalDateLabel: AuthStore.formatRealTimeShortDate(),
           arrivalHour: _arrivalHour,
         ),
       ),
@@ -335,7 +397,7 @@ class _PesanValetScreenState extends State<PesanValetScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: Image.asset(
-              'assets/images/senayan_city.png',
+              _selectedLocation.imageAsset,
               height: 136,
               fit: BoxFit.cover,
             ),
@@ -386,7 +448,11 @@ class _PesanValetScreenState extends State<PesanValetScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const StatusBadge(text: 'Valet tersedia', isActive: true),
+              StatusBadge(
+                text:
+                    'Valet tersedia • ${_selectedLocation.availableSlots} slot',
+                isActive: true,
+              ),
               GestureDetector(
                 onTap: _pickLocation,
                 child: Text(
@@ -406,6 +472,78 @@ class _PesanValetScreenState extends State<PesanValetScreen> {
   }
 
   Widget _buildVehicleCard(SavedVehicle vehicle) {
+    if (AuthStore.savedVehicles.isEmpty) {
+      return GestureDetector(
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const KendaraanSayaScreen(),
+            ),
+          );
+          if (mounted && AuthStore.savedVehicles.isNotEmpty) {
+            setState(() {
+              _selectedVehicleId = AuthStore.primaryVehicle.id;
+            });
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.cardBorder, width: 1.2),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.navPillBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.add_circle_outline_rounded,
+                  color: AppColors.navActive,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Belum ada kendaraan tersimpan',
+                      style: TextStyle(
+                        color: AppColors.darkPrimary,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Ketuk di sini untuk menambahkan kendaraan Anda terlebih dahulu.',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.navActive,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: _pickOrManageVehicle,
       child: Container(
@@ -482,7 +620,7 @@ class _PesanValetScreenState extends State<PesanValetScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Hari ini, 8 Okt • $_arrivalHour WIB',
+              'Hari ini, ${AuthStore.formatRealTimeShortDate()} • $_arrivalHour WIB',
               style: TextStyle(
                 color: AppColors.darkPrimary,
                 fontSize: 13.8,

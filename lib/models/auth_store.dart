@@ -88,20 +88,177 @@ class SavedVehicle {
 class AuthStore {
   AuthStore._();
 
-  static const int defaultInitialBalance = 205000;
+  static const int defaultInitialBalance = 0;
+  static const int uniformMallSlots = 15;
 
   static final List<UserAccount> _registeredUsers = [];
   static UserAccount? currentUser;
 
-  static final List<SavedVehicle> savedVehicles = [SavedVehicle.defaultPrimary];
-  static ParkingTicket activeTicket = ParkingTicket.sampleActive;
+  static final List<SavedVehicle> savedVehicles = [];
+  static ParkingTicket activeTicket = ParkingTicket.createEmptyInitial();
+  static final List<ParkingTicket> ticketHistory = [];
+  static bool hasBookedOnce = false;
+
+  /// Menyimpan jumlah tiket/kendaraan aktif tambahan di tiap mall (di luar activeTicket utama)
+  static final Map<String, int> _extraActiveBookingsByMall = {};
+
+  /// Menghitung berapa slot parkir valet (dari 15 slot) yang sedang terisi di mall tertentu secara real-time
+  static int occupiedSlotsForMall(String mallName, {int maxSlots = uniformMallSlots}) {
+    final key = mallName.trim().toLowerCase();
+    int count = _extraActiveBookingsByMall[key] ?? 0;
+
+    // Jika tiket aktif utama user berada di mall ini dan belum selesai diambil, otomatis memotong 1 slot
+    final isMainTicketHere = activeTicket.isActive &&
+        !activeTicket.isPickupRequested &&
+        activeTicket.locationName.trim().toLowerCase() == key;
+    if (isMainTicketHere) {
+      count += 1;
+    }
+    return count.clamp(0, maxSlots);
+  }
+
+  /// Menghitung sisa slot parkir valet yang tersedia dari 15 slot di mall tertentu secara real-time
+  static int availableSlotsForMall(String mallName, {int maxSlots = uniformMallSlots}) {
+    final occupied = occupiedSlotsForMall(mallName, maxSlots: maxSlots);
+    return (maxSlots - occupied).clamp(0, maxSlots);
+  }
+
+  /// Dipanggil saat user memesan valet baru agar slot parkir di mall tersebut berkurang secara real-time
+  static void recordNewValetBooking(String newMallName) {
+    hasBookedOnce = true;
+    final newKey = newMallName.trim().toLowerCase();
+    final prevActive = activeTicket.isActive && !activeTicket.isPickupRequested;
+    final prevKey = activeTicket.locationName.trim().toLowerCase();
+
+    // Jika sebelumnya sudah ada tiket aktif yang belum selesai diambil,
+    // pindahkan slot tiket sebelumnya ke daftar ekstra agar slot yang dipakai tetap tercatat real-time
+    if (prevActive) {
+      final currentExtra = _extraActiveBookingsByMall[prevKey] ?? 0;
+      _extraActiveBookingsByMall[prevKey] =
+          (currentExtra + 1).clamp(0, uniformMallSlots);
+    }
+
+    // Pastikan tidak melebihi kapasitas 15 slot
+    final currentNewExtra = _extraActiveBookingsByMall[newKey] ?? 0;
+    if (currentNewExtra >= uniformMallSlots) {
+      _extraActiveBookingsByMall[newKey] = uniformMallSlots - 1;
+    }
+  }
+
+  /// Dipanggil saat kendaraan diambil & dibayar:
+  /// - Menghapus status aktif tiket (hilang dari tab Tiket Aktif)
+  /// - Memindahkan tiket ke urutan teratas Riwayat Parkir
+  /// - Mengembalikan 1 slot parkir valet di mall terkait
+  static ParkingTicket completeActiveTicket(ParkingTicket completed) {
+    releaseValetSlot(completed.locationName);
+    final finished = completed.copyWith(
+      isActive: false,
+      isPickupRequested: true,
+      statusText: 'Selesai',
+    );
+    activeTicket = finished;
+    ticketHistory.insert(0, finished);
+    return finished;
+  }
+
+  /// Dipanggil saat kendaraan diambil / selesai parkir sehingga slot parkir bertambah kembali
+  static void releaseValetSlot(String mallName) {
+    final key = mallName.trim().toLowerCase();
+    final currentExtra = _extraActiveBookingsByMall[key] ?? 0;
+    if (currentExtra > 0) {
+      _extraActiveBookingsByMall[key] = currentExtra - 1;
+    }
+  }
+
+  /// Untuk simulasi tambah/kurang mobil aktif secara langsung di mall tertentu
+  static void adjustMallOccupiedSlots(String mallName, int delta) {
+    final key = mallName.trim().toLowerCase();
+    final isMainTicketHere = activeTicket.isActive &&
+        !activeTicket.isPickupRequested &&
+        activeTicket.locationName.trim().toLowerCase() == key;
+    final mainSlot = isMainTicketHere ? 1 : 0;
+    final currentTotal = occupiedSlotsForMall(mallName);
+    final targetTotal = (currentTotal + delta).clamp(0, uniformMallSlots);
+
+    if (targetTotal == 0 && isMainTicketHere) {
+      activeTicket = activeTicket.copyWith(isPickupRequested: true);
+      _extraActiveBookingsByMall[key] = 0;
+    } else {
+      _extraActiveBookingsByMall[key] =
+          (targetTotal - mainSlot).clamp(0, uniformMallSlots);
+    }
+  }
+
+  static void resetMallSlots(String mallName) {
+    final key = mallName.trim().toLowerCase();
+    _extraActiveBookingsByMall.remove(key);
+  }
+
+  /// Format tanggal Bahasa Indonesia real-time mengikuti waktu dunia (contoh: "Senin, 2 November 2026")
+  static String formatRealTimeFullDate([DateTime? dt]) {
+    final now = dt ?? DateTime.now();
+    const days = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    final dayName = days[(now.weekday - 1).clamp(0, 6)];
+    final monthName = months[(now.month - 1).clamp(0, 11)];
+    return '$dayName, ${now.day} $monthName ${now.year}';
+  }
+
+  /// Format tanggal singkat real-time (contoh: "2 Nov 2026")
+  static String formatRealTimeShortDate([DateTime? dt]) {
+    final now = dt ?? DateTime.now();
+    const shortMonths = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    final m = shortMonths[(now.month - 1).clamp(0, 11)];
+    return '${now.day} $m ${now.year}';
+  }
+
+  /// Sapaan otomatis mengikuti jam dunia saat ini
+  static String realTimeGreeting([DateTime? dt]) {
+    final hour = (dt ?? DateTime.now()).hour;
+    if (hour >= 4 && hour < 11) return 'Selamat pagi';
+    if (hour >= 11 && hour < 15) return 'Selamat siang';
+    if (hour >= 15 && hour < 18) return 'Selamat sore';
+    return 'Selamat malam';
+  }
 
   // State Dompet PARVE & visibilitas ala m-banking
   static int walletBalance = defaultInitialBalance;
   static bool isBalanceVisible = true;
-  static final List<WalletTransaction> walletTransactions = [
-    ...WalletTransaction.defaultHistory,
-  ];
+  static final List<WalletTransaction> walletTransactions = [];
 
   // State Profil & Pengaturan Layanan
   static Uint8List? profilePhotoBytes;
@@ -169,7 +326,7 @@ class AuthStore {
         id: 'trx-${DateTime.now().millisecondsSinceEpoch}',
         title: 'Isi saldo',
         subtitle: '$methodShortName • ${_currentTimeDot()}',
-        dateGroup: '8 Oktober 2026',
+        dateGroup: formatRealTimeFullDate(),
         amount: amount,
         isCredit: true,
       ),
@@ -190,7 +347,7 @@ class AuthStore {
         id: 'trx-${DateTime.now().millisecondsSinceEpoch}',
         title: title,
         subtitle: subtitle,
-        dateGroup: '8 Oktober 2026',
+        dateGroup: formatRealTimeFullDate(),
         amount: amount,
         isCredit: false,
       ),
@@ -203,10 +360,16 @@ class AuthStore {
   static List<UserAccount> get registeredUsers =>
       List.unmodifiable(_registeredUsers);
 
-  static SavedVehicle get primaryVehicle => savedVehicles.firstWhere(
-    (v) => v.isPrimary,
-    orElse: () => savedVehicles.first,
-  );
+  static SavedVehicle? get primaryVehicleOrNull {
+    if (savedVehicles.isEmpty) return null;
+    return savedVehicles.firstWhere(
+      (v) => v.isPrimary,
+      orElse: () => savedVehicles.first,
+    );
+  }
+
+  static SavedVehicle get primaryVehicle =>
+      primaryVehicleOrNull ?? SavedVehicle.defaultPrimary;
 
   static void syncTicketWithPrimaryVehicle() {
     if (savedVehicles.isEmpty) return;
@@ -247,7 +410,6 @@ class AuthStore {
   }
 
   static void removeVehicle(String id) {
-    if (savedVehicles.length <= 1) return;
     savedVehicles.removeWhere((v) => v.id == id);
     if (!savedVehicles.any((v) => v.isPrimary) && savedVehicles.isNotEmpty) {
       savedVehicles[0] = savedVehicles[0].copyWith(isPrimary: true);
@@ -309,12 +471,11 @@ class AuthStore {
     AppColors.setDarkMode(false);
     walletBalance = defaultInitialBalance;
     isBalanceVisible = true;
-    walletTransactions
-      ..clear()
-      ..addAll(WalletTransaction.defaultHistory);
-    savedVehicles
-      ..clear()
-      ..add(SavedVehicle.defaultPrimary);
-    activeTicket = ParkingTicket.sampleActive;
+    walletTransactions.clear();
+    savedVehicles.clear();
+    _extraActiveBookingsByMall.clear();
+    ticketHistory.clear();
+    hasBookedOnce = false;
+    activeTicket = ParkingTicket.createEmptyInitial();
   }
 }

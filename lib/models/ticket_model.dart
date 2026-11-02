@@ -45,6 +45,8 @@ class ParkingTicket {
   final List<VehicleJourneyStep> journeySteps;
   final bool isActive;
   final bool isPickupRequested;
+  final DateTime? parkingStartedAt;
+  final int? frozenElapsedSeconds;
 
   const ParkingTicket({
     required this.ticketCode,
@@ -75,9 +77,61 @@ class ParkingTicket {
     required this.journeySteps,
     this.isActive = true,
     this.isPickupRequested = false,
+    this.parkingStartedAt,
+    this.frozenElapsedSeconds,
   });
 
-  int get totalParkingFee => parkingHours * hourlyRate;
+  /// Total detik parkir yang sudah berjalan secara real-time (atau terkunci saat selesai dibayar)
+  int get liveElapsedSeconds {
+    if (frozenElapsedSeconds != null) {
+      return frozenElapsedSeconds!;
+    }
+    if (parkingStartedAt != null) {
+      final diff = DateTime.now().difference(parkingStartedAt!).inSeconds;
+      return diff < 0 ? 0 : diff;
+    }
+    return parkingHours * 3600;
+  }
+
+  /// Format stopwatch HH:MM:SS secara real-time (contoh: "01:30:14")
+  String get liveStopwatchText {
+    final total = liveElapsedSeconds;
+    final h = (total ~/ 3600).toString().padLeft(2, '0');
+    final m = ((total % 3600) ~/ 60).toString().padLeft(2, '0');
+    final s = (total % 60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  /// Format teks durasi berjalan secara real-time (contoh: "1 jam 30 menit 14d")
+  String get liveDurationText {
+    if (!isActive && parkingStartedAt == null && frozenElapsedSeconds == null) {
+      return currentDuration;
+    }
+    final total = liveElapsedSeconds;
+    final h = total ~/ 3600;
+    final m = (total % 3600) ~/ 60;
+    final s = total % 60;
+    if (h > 0) {
+      return '$h jam $m menit ${s}d';
+    }
+    if (m > 0) {
+      return '$m menit ${s}d';
+    }
+    return '$s detik';
+  }
+
+  /// Akumulasi jam parkir (dibulatkan ke atas per jam berjalan, minimal 1 jam)
+  int get accumulatedHours {
+    if (!isActive && parkingStartedAt == null && frozenElapsedSeconds == null) {
+      return parkingHours < 1 ? 1 : parkingHours;
+    }
+    final total = liveElapsedSeconds;
+    if (total <= 0) return 1;
+    final hours = (total / 3600).ceil();
+    return hours < 1 ? 1 : hours;
+  }
+
+  int get totalParkingFee => accumulatedHours * hourlyRate;
   int get grandTotalFee => valetFeeAmount + totalParkingFee;
   int get remainingWalletBalance => walletBalance - totalParkingFee;
 
@@ -97,7 +151,7 @@ class ParkingTicket {
 
   String get endHour {
     final startH = int.tryParse(startHour.split('.').first) ?? 13;
-    return '${startH + parkingHours}.00';
+    return '${startH + accumulatedHours}.00';
   }
 
   static String formatRupiah(int amount) {
@@ -115,6 +169,7 @@ class ParkingTicket {
   ParkingTicket copyWith({
     String? ticketCode,
     String? userName,
+    String? fullDate,
     String? locationName,
     String? pickupLobby,
     String? statusText,
@@ -129,16 +184,23 @@ class ParkingTicket {
     String? pickupTime,
     int? parkingHours,
     int? walletBalance,
+    String? parkingArea,
+    String? shortSlot,
     String? currentDuration,
+    String? lastUpdated,
+    String? valetOfficerName,
     String? valetPaymentMethod,
     List<VehicleJourneyStep>? journeySteps,
     bool? isActive,
     bool? isPickupRequested,
+    DateTime? parkingStartedAt,
+    int? frozenElapsedSeconds,
+    bool clearFrozenElapsed = false,
   }) {
     return ParkingTicket(
       ticketCode: ticketCode ?? this.ticketCode,
       userName: userName ?? this.userName,
-      fullDate: fullDate,
+      fullDate: fullDate ?? this.fullDate,
       locationName: locationName ?? this.locationName,
       pickupLobby: pickupLobby ?? this.pickupLobby,
       statusText: statusText ?? this.statusText,
@@ -155,15 +217,19 @@ class ParkingTicket {
       hourlyRate: hourlyRate,
       valetFeeAmount: valetFeeAmount,
       walletBalance: walletBalance ?? this.walletBalance,
-      parkingArea: parkingArea,
-      shortSlot: shortSlot,
+      parkingArea: parkingArea ?? this.parkingArea,
+      shortSlot: shortSlot ?? this.shortSlot,
       currentDuration: currentDuration ?? this.currentDuration,
-      lastUpdated: lastUpdated,
-      valetOfficerName: valetOfficerName,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
+      valetOfficerName: valetOfficerName ?? this.valetOfficerName,
       valetPaymentMethod: valetPaymentMethod ?? this.valetPaymentMethod,
       journeySteps: journeySteps ?? this.journeySteps,
       isActive: isActive ?? this.isActive,
       isPickupRequested: isPickupRequested ?? this.isPickupRequested,
+      parkingStartedAt: parkingStartedAt ?? this.parkingStartedAt,
+      frozenElapsedSeconds: clearFrozenElapsed
+          ? null
+          : (frozenElapsedSeconds ?? this.frozenElapsedSeconds),
     );
   }
 
@@ -220,6 +286,25 @@ class ParkingTicket {
     ],
     isActive: true,
   );
+
+  /// Membuat state tiket awal kosong (belum ada sesi parkir aktif saat user baru mulai)
+  static ParkingTicket createEmptyInitial() {
+    return sampleActive.copyWith(
+      walletBalance: 0,
+      isActive: false,
+      isPickupRequested: false,
+      statusText: 'Belum ada sesi',
+    );
+  }
+
+  /// Membuat tiket aktif awal dengan timer real-time berjalan (sudah berjalan 1 jam 30 menit)
+  static ParkingTicket createInitialSampleActive() {
+    return sampleActive.copyWith(
+      parkingStartedAt: DateTime.now().subtract(
+        const Duration(hours: 1, minutes: 30, seconds: 12),
+      ),
+    );
+  }
 
   static const List<ParkingTicket> sampleHistory = [
     ParkingTicket(

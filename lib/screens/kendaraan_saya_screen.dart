@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/app_colors.dart';
 import '../models/auth_store.dart';
 import '../widgets/booking_step_header.dart';
@@ -74,6 +75,21 @@ class _KendaraanSayaScreenState extends State<KendaraanSayaScreen> {
               ),
               ListTile(
                 leading: Icon(
+                  Icons.directions_car_outlined,
+                  color: AppColors.navActive,
+                ),
+                title: Text(
+                  'Gunakan Foto Contoh (Toyota Veloz)',
+                  style: TextStyle(color: AppColors.darkPrimary),
+                ),
+                subtitle: Text(
+                  'Pakai ilustrasi mobil bawaan jika galeri kosong',
+                  style: TextStyle(color: AppColors.textMuted),
+                ),
+                onTap: () => Navigator.pop(ctx, 'sample'),
+              ),
+              ListTile(
+                leading: Icon(
                   Icons.folder_open_rounded,
                   color: AppColors.navActive,
                 ),
@@ -94,6 +110,32 @@ class _KendaraanSayaScreenState extends State<KendaraanSayaScreen> {
     );
 
     if (choice == null || !mounted) return null;
+
+    if (choice == 'gallery' || choice == 'camera') {
+      try {
+        final picker = ImagePicker();
+        final XFile? pickedFile = await picker.pickImage(
+          source:
+              choice == 'camera' ? ImageSource.camera : ImageSource.gallery,
+          maxWidth: 1280,
+          maxHeight: 1280,
+          imageQuality: 85,
+        );
+        if (pickedFile != null) {
+          return await pickedFile.readAsBytes();
+        }
+        return null;
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal membuka galeri/kamera: $e'),
+            ),
+          );
+        }
+        return null;
+      }
+    }
 
     if (choice == 'path') {
       final pathCtrl = TextEditingController();
@@ -335,14 +377,6 @@ class _KendaraanSayaScreenState extends State<KendaraanSayaScreen> {
   }
 
   void _handleDelete(SavedVehicle vehicle) {
-    if (AuthStore.savedVehicles.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Minimal harus ada 1 kendaraan tersimpan.'),
-        ),
-      );
-      return;
-    }
     setState(() => AuthStore.removeVehicle(vehicle.id));
   }
 
@@ -397,9 +431,14 @@ class _KendaraanSayaScreenState extends State<KendaraanSayaScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      for (final v in vehicles) ...[
-                        _buildVehicleCard(v),
+                      if (vehicles.isEmpty) ...[
+                        _buildEmptyVehicleState(),
                         const SizedBox(height: 14),
+                      ] else ...[
+                        for (final v in vehicles) ...[
+                          _buildVehicleCard(v),
+                          const SizedBox(height: 14),
+                        ],
                       ],
                       _buildNoticeBanner(),
                       const SizedBox(height: 14),
@@ -416,6 +455,75 @@ class _KendaraanSayaScreenState extends State<KendaraanSayaScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyVehicleState() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 32, 22, 26),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: AppColors.navPillBg,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.directions_car_outlined,
+              color: AppColors.navActive,
+              size: 27,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Belum ada kendaraan tersimpan',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.darkPrimary,
+              fontSize: 17.0,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Tambahkan data dan foto kendaraan Anda terlebih dahulu agar petugas dapat mengenali mobil Anda saat layanan valet.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12.5,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.darkPrimary,
+              side: BorderSide(color: AppColors.cardBorder, width: 1.2),
+              minimumSize: const Size.fromHeight(44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(11),
+              ),
+            ),
+            onPressed: () => _openVehicleForm(),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text(
+              'Tambah kendaraan pertama',
+              style: TextStyle(
+                fontSize: 13.2,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

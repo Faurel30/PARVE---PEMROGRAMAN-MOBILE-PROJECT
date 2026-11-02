@@ -10,6 +10,7 @@ import 'beranda_screen.dart';
 import 'dompet_screen.dart';
 import 'kendaraan_saya_screen.dart';
 import 'pantau_kendaraan_screen.dart';
+import 'pesan_valet_screen.dart';
 import 'profil_screen.dart';
 
 class AktivitasScreen extends StatefulWidget {
@@ -137,25 +138,33 @@ class _AktivitasScreenState extends State<AktivitasScreen> {
                       _buildSegmentedTabs(),
                       const SizedBox(height: 17),
                       if (_selectedTabIndex == 0) ...[
-                        TicketCard(
-                          ticket: _activeTicket,
-                          onVehicleTap: _openKendaraanSaya,
-                        ),
-                        const SizedBox(height: 18),
-                        _buildPantauButton(),
-                        const SizedBox(height: 14),
-                        Text(
-                          'Biaya parkir dibayar saat pengambilan kendaraan.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 11.8,
+                        if (_activeTicket.isActive) ...[
+                          TicketCard(
+                            ticket: _activeTicket,
+                            onVehicleTap: _openKendaraanSaya,
                           ),
-                        ),
-                      ] else ...[
-                        for (final item in ParkingTicket.sampleHistory) ...[
-                          TicketCard(ticket: item),
+                          const SizedBox(height: 18),
+                          _buildPantauButton(),
                           const SizedBox(height: 14),
+                          Text(
+                            'Biaya parkir dibayar saat pengambilan kendaraan.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11.8,
+                            ),
+                          ),
+                        ] else ...[
+                          _buildEmptyActiveTicketCard(),
+                        ],
+                      ] else ...[
+                        if (AuthStore.ticketHistory.isEmpty) ...[
+                          _buildEmptyHistoryCard(),
+                        ] else ...[
+                          for (final item in AuthStore.ticketHistory) ...[
+                            TicketCard(ticket: item),
+                            const SizedBox(height: 14),
+                          ],
                         ],
                       ],
                     ],
@@ -211,6 +220,167 @@ class _AktivitasScreenState extends State<AktivitasScreen> {
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildEmptyActiveTicketCard() {
+    final hasHistory = AuthStore.ticketHistory.isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 32, 22, 26),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: AppColors.navPillBg,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.confirmation_number_outlined,
+              color: AppColors.navActive,
+              size: 27,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tidak ada tiket parkir aktif',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.darkPrimary,
+              fontSize: 17.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            hasHistory
+                ? 'Kendaraan Anda sudah diambil dan tiket aktif telah selesai. '
+                    'Tiket sebelumnya kini tersimpan di tab Riwayat parkir.'
+                : 'Anda belum memiliki sesi parkir yang sedang berjalan. '
+                    'Pesan layanan valet saat tiba di mall pilihan Anda.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12.6,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 22),
+          Material(
+            color: AppColors.goldButton,
+            borderRadius: BorderRadius.circular(11),
+            child: InkWell(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PesanValetScreen()),
+                );
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(11),
+              child: const SizedBox(
+                height: 47,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.directions_car_outlined,
+                      size: 18,
+                      color: AppColors.onGold,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Pesan valet sekarang',
+                      style: TextStyle(
+                        color: AppColors.onGold,
+                        fontSize: 13.8,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (hasHistory) ...[
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.darkPrimary,
+                side: BorderSide(color: AppColors.cardBorder, width: 1.2),
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+              ),
+              onPressed: () => setState(() => _selectedTabIndex = 1),
+              icon: const Icon(Icons.history_rounded, size: 18),
+              label: const Text(
+                'Lihat riwayat parkir',
+                style: TextStyle(
+                  fontSize: 13.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyHistoryCard() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 32, 22, 28),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSubtle,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.history_rounded,
+              color: AppColors.textMuted,
+              size: 26,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Belum ada riwayat parkir',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.darkPrimary,
+              fontSize: 16.8,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Riwayat tiket parkir valet Anda akan tersimpan secara otomatis di sini setelah sesi parkir selesai.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12.4,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

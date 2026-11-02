@@ -270,7 +270,7 @@ class _PengambilanSelesaiScreenState extends State<PengambilanSelesaiScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Dibayar dengan Dompet PARVE • saldo $formattedRemaining',
+            'Dibayar dengan ${t.valetPaymentMethod} • saldo Dompet PARVE $formattedRemaining',
             style: TextStyle(
               color: AppColors.textMuted,
               fontSize: 11.2,

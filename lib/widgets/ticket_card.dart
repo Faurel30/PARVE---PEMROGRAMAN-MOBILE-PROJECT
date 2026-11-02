@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import '../models/ticket_model.dart';
 import 'vehicle_illustration.dart';
 
-class TicketCard extends StatelessWidget {
+class TicketCard extends StatefulWidget {
   final ParkingTicket ticket;
   final VoidCallback? onVehicleTap;
 
@@ -14,7 +15,44 @@ class TicketCard extends StatelessWidget {
   });
 
   @override
+  State<TicketCard> createState() => _TicketCardState();
+}
+
+class _TicketCardState extends State<TicketCard> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant TicketCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncTimer();
+  }
+
+  void _syncTimer() {
+    _timer?.cancel();
+    if (widget.ticket.isActive && widget.ticket.frozenElapsedSeconds == null) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final ticket = widget.ticket;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -133,7 +171,7 @@ class TicketCard extends StatelessWidget {
               children: [
                 VehicleSummaryRow(
                   ticket: ticket,
-                  onVehicleTap: onVehicleTap,
+                  onVehicleTap: widget.onVehicleTap,
                   trailing: !ticket.isActive
                       ? StatusBadge(text: ticket.statusText, isActive: false)
                       : null,
@@ -146,11 +184,35 @@ class TicketCard extends StatelessWidget {
                   value: ticket.parkingArea,
                 ),
                 const SizedBox(height: 12),
-                TicketDetailRow(
-                  label: 'Valet dibayar',
-                  value: ticket.valetFee,
-                  isHighlight: true,
-                ),
+                if (ticket.isActive) ...[
+                  TicketDetailRow(
+                    label: 'Timer durasi parkir',
+                    value:
+                        '${ticket.liveStopwatchText} (${ticket.accumulatedHours} jam)',
+                  ),
+                  const SizedBox(height: 12),
+                  TicketDetailRow(
+                    label: 'Valet (Lunas di awal)',
+                    value: ticket.valetFee,
+                  ),
+                  const SizedBox(height: 12),
+                  TicketDetailRow(
+                    label: 'Akumulasi parkir (Rp5.000/jam)',
+                    value: ticket.formattedParkingFee,
+                    isHighlight: true,
+                  ),
+                ] else ...[
+                  TicketDetailRow(
+                    label: 'Durasi parkir',
+                    value: ticket.currentDuration,
+                  ),
+                  const SizedBox(height: 12),
+                  TicketDetailRow(
+                    label: 'Total valet & parkir',
+                    value: ticket.formattedGrandTotal,
+                    isHighlight: true,
+                  ),
+                ],
               ],
             ),
           ),

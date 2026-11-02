@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/app_colors.dart';
 import '../models/auth_store.dart';
+import '../models/booking_models.dart';
 import '../models/ticket_model.dart';
 import '../widgets/booking_step_header.dart';
+import '../widgets/midtrans_sandbox_sheet.dart';
+import '../widgets/payment_method_dropdown.dart';
 import '../widgets/ticket_card.dart';
 import '../widgets/vehicle_illustration.dart';
 import 'isi_saldo_screen.dart';
@@ -25,9 +29,29 @@ class AmbilKendaraanScreen extends StatefulWidget {
 
 class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
   late ParkingTicket _ticket = widget.ticket;
+  late PaymentMethodOption _selectedMethod =
+      PaymentMethodOption.parveWalletOption(AuthStore.formattedWalletBalance);
+  Timer? _liveTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _liveTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _ticket.frozenElapsedSeconds == null) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _liveTimer?.cancel();
+    super.dispose();
+  }
 
   void _updateTicket(ParkingTicket updated) {
     setState(() => _ticket = updated);
+    AuthStore.activeTicket = updated;
     widget.onTicketUpdated?.call(updated);
   }
 
@@ -47,68 +71,38 @@ class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
     );
   }
 
-  void _cycleParkingHours() {
-    final nextHours = (_ticket.parkingHours % 5) + 1;
-    final endHour = 13 + nextHours - 1;
-    _updateTicket(
+  Future<void> _finalizePickup({
+    required int finalHours,
+    required String paidFee,
+    required String pickupHour,
+  }) async {
+    final remainingBalance = AuthStore.walletBalance;
+    final frozenSecs = _ticket.liveElapsedSeconds;
+
+    final updated = AuthStore.completeActiveTicket(
       _ticket.copyWith(
-        parkingHours: nextHours,
-        pickupTime: '$endHour.55 WIB',
-        currentDuration: '$nextHours jam',
+        walletBalance: remainingBalance,
+        parkingHours: finalHours,
+        currentDuration: _ticket.liveDurationText,
+        pickupTime: '$pickupHour WIB',
+        frozenElapsedSeconds: frozenSecs,
+        valetPaymentMethod: _selectedMethod.title,
+        statusText: 'Selesai',
+        isActive: false,
+        isPickupRequested: true,
+        journeySteps: [
+          ..._ticket.journeySteps,
+          VehicleJourneyStep(
+            title:
+                'Permintaan ambil & bayar ($paidFee via ${_selectedMethod.shortName})',
+            subtitle: _ticket.pickupLobby,
+            time: pickupHour,
+          ),
+        ],
       ),
     );
-  }
-
-  Future<void> _processPaymentAndRequestCar() async {
-    final fee = _ticket.totalParkingFee;
-    final paidFee = _ticket.formattedParkingFee;
-    final pickupHour = _ticket.pickupTime.replaceAll(' WIB', '');
-
-    final success = AuthStore.deductWallet(
-      amount: fee,
-      title: 'Parkir gedung',
-      subtitle: '${_ticket.locationName} • $pickupHour',
-    );
-    if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
-            'Saldo Dompet PARVE tidak cukup untuk membayar parkir.',
-          ),
-          action: SnackBarAction(
-            label: 'Isi saldo',
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const IsiSaldoScreen()),
-              );
-              if (mounted) {
-                _updateTicket(
-                  _ticket.copyWith(walletBalance: AuthStore.walletBalance),
-                );
-              }
-            },
-          ),
-        ),
-      );
-      return;
-    }
-
-    final remainingBalance = AuthStore.walletBalance;
-    final updated = _ticket.copyWith(
-      walletBalance: remainingBalance,
-      statusText: 'Diantar ke lobi',
-      isPickupRequested: true,
-      journeySteps: [
-        ..._ticket.journeySteps,
-        VehicleJourneyStep(
-          title: 'Permintaan ambil & bayar ($paidFee)',
-          subtitle: _ticket.pickupLobby,
-          time: pickupHour,
-        ),
-      ],
-    );
-    _updateTicket(updated);
+    setState(() => _ticket = updated);
+    widget.onTicketUpdated?.call(updated);
 
     await Navigator.push(
       context,
@@ -118,6 +112,73 @@ class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
           remainingBalanceAfterPay: remainingBalance,
         ),
       ),
+    );
+  }
+
+  Future<void> _processPaymentAndRequestCar() async {
+    final finalHours = _ticket.accumulatedHours;
+    final fee = _ticket.totalParkingFee;
+    final paidFee = _ticket.formattedParkingFee;
+    final now = DateTime.now();
+    final pickupHour =
+        '${now.hour.toString().padLeft(2, '0')}.${now.minute.toString().padLeft(2, '0')}';
+
+    if (_selectedMethod.category == PaymentCategory.parveWallet) {
+      final success = AuthStore.deductWallet(
+        amount: fee,
+        title: 'Parkir gedung ($finalHours jam)',
+        subtitle: '${_ticket.locationName} • $pickupHour',
+      );
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Saldo Dompet PARVE tidak cukup. Silakan isi saldo atau pilih metode pembayaran lain (QRIS / E-Wallet / Bank).',
+            ),
+            action: SnackBarAction(
+              label: 'Isi saldo',
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const IsiSaldoScreen()),
+                );
+                if (mounted) {
+                  setState(() {
+                    _selectedMethod = PaymentMethodOption.parveWalletOption(
+                      AuthStore.formattedWalletBalance,
+                    );
+                  });
+                  _updateTicket(
+                    _ticket.copyWith(walletBalance: AuthStore.walletBalance),
+                  );
+                }
+              },
+            ),
+          ),
+        );
+        return;
+      }
+
+      await _finalizePickup(
+        finalHours: finalHours,
+        paidFee: paidFee,
+        pickupHour: pickupHour,
+      );
+      return;
+    }
+
+    await showMidtransSandboxSheet(
+      context: context,
+      method: _selectedMethod,
+      amount: fee,
+      description: 'Total pembayaran parkir gedung ($finalHours jam)',
+      onConfirmed: () {
+        _finalizePickup(
+          finalHours: finalHours,
+          paidFee: paidFee,
+          pickupHour: pickupHour,
+        );
+      },
     );
   }
 
@@ -147,7 +208,7 @@ class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
                       _buildVehicleAndLobbyCard(),
                       const SizedBox(height: 18),
                       Text(
-                        'Selesaikan pembayaran parkir',
+                        'Selesaikan pembayaran akumulasi parkir',
                         style: TextStyle(
                           color: AppColors.darkPrimary,
                           fontSize: 15.5,
@@ -156,9 +217,23 @@ class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
                       ),
                       const SizedBox(height: 10),
                       _buildPaymentSummaryCard(),
-                      const SizedBox(height: 12),
-                      _buildWalletMethodCard(),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Metode pembayaran',
+                        style: TextStyle(
+                          color: AppColors.darkPrimary,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      PaymentMethodDropdown(
+                        selected: _selectedMethod,
+                        includeParveWallet: true,
+                        onChanged: (val) =>
+                            setState(() => _selectedMethod = val),
+                      ),
+                      const SizedBox(height: 14),
                       _buildInfoNoticeCard(),
                     ],
                   ),
@@ -179,19 +254,19 @@ class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
         color: AppColors.heroDark,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.timer_outlined,
             color: AppColors.goldText,
             size: 26,
           ),
-          SizedBox(width: 14),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Siap dalam ±5 menit',
                   style: TextStyle(
                     color: Colors.white,
@@ -200,10 +275,10 @@ class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
                     letterSpacing: -0.2,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'Petugas mengantar mobil ke lobi utama.',
-                  style: TextStyle(
+                  'Timer parkir: ${_ticket.liveStopwatchText} • Akumulasi ${_ticket.accumulatedHours} jam.',
+                  style: const TextStyle(
                     color: Color(0xFFA0A39E),
                     fontSize: 12.2,
                   ),
@@ -281,95 +356,40 @@ class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
   }
 
   Widget _buildPaymentSummaryCard() {
-    return GestureDetector(
-      onTap: _cycleParkingHours,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.cardBorder, width: 1.2),
-        ),
-        child: Column(
-          children: [
-            TicketDetailRow(label: 'Masuk', value: _ticket.shortEntryTime),
-            const SizedBox(height: 11),
-            TicketDetailRow(
-              label: 'Permintaan pengambilan',
-              value: _ticket.pickupTime,
-            ),
-            const SizedBox(height: 11),
-            TicketDetailRow(
-              label:
-                  'Parkir ${_ticket.parkingHours} jam × ${_ticket.formattedHourlyRate}',
-              value: _ticket.formattedParkingFee,
-            ),
-            const SizedBox(height: 11),
-            TicketDetailRow(
-              label: 'Valet • sudah dibayar',
-              value: _ticket.valetFee,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              child: Divider(height: 1, thickness: 1, color: AppColors.divider),
-            ),
-            TicketDetailRow(
-              label: 'Bayar sekarang',
-              value: _ticket.formattedParkingFee,
-              isHighlight: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWalletMethodCard() {
-    final currentWallet = AuthStore.walletBalance;
-    final afterPay = currentWallet - _ticket.totalParkingFee;
+    final accHours = _ticket.accumulatedHours;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.cardBorder, width: 1.2),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(
-            Icons.account_balance_wallet_outlined,
-            color: AppColors.navActive,
-            size: 21,
+          TicketDetailRow(label: 'Waktu masuk', value: _ticket.shortEntryTime),
+          const SizedBox(height: 11),
+          TicketDetailRow(
+            label: 'Timer durasi berjalan',
+            value: '${_ticket.liveStopwatchText} (${_ticket.liveDurationText})',
           ),
-          const SizedBox(width: 13),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Dompet PARVE • ${ParkingTicket.formatRupiah(currentWallet)}',
-                  style: TextStyle(
-                    color: AppColors.darkPrimary,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Saldo setelah bayar ${ParkingTicket.formatRupiah(afterPay < 0 ? 0 : afterPay)}',
-                  style: TextStyle(
-                    color: AppColors.textMuted,
-                    fontSize: 11.4,
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 11),
+          TicketDetailRow(
+            label: 'Akumulasi parkir ($accHours jam × ${_ticket.formattedHourlyRate})',
+            value: _ticket.formattedParkingFee,
           ),
-          Icon(
-            Icons.check_circle_outline_rounded,
-            color: AppColors.badgeGreen,
-            size: 22,
+          const SizedBox(height: 11),
+          TicketDetailRow(
+            label: 'Valet • sudah dibayar di awal',
+            value: _ticket.valetFee,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Divider(height: 1, thickness: 1, color: AppColors.divider),
+          ),
+          TicketDetailRow(
+            label: 'Total akumulasi parkir (Bayar sekarang)',
+            value: _ticket.formattedParkingFee,
+            isHighlight: true,
           ),
         ],
       ),
@@ -397,8 +417,8 @@ class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
           const SizedBox(width: 11),
           Expanded(
             child: Text(
-              'Pastikan Anda sudah menuju lobi. Siapkan tiket digital; '
-              'petugas akan memverifikasi sebelum menyerahkan mobil.',
+              'Biaya parkir dihitung berdasarkan akumulasi waktu berjalan (Rp5.000/jam, dibulatkan ke atas). '
+              'Timer akan berhenti otomatis saat pembayaran dikonfirmasi.',
               style: TextStyle(
                 color: AppColors.navActive,
                 fontSize: 11.6,

@@ -37,21 +37,38 @@ class _KonfirmasiBayarScreenState extends State<KonfirmasiBayarScreen> {
       PaymentMethodOption.parveWalletOption(AuthStore.formattedWalletBalance);
 
   void _finalizeBooking() {
+    final now = DateTime.now();
     final startH = int.tryParse(widget.arrivalHour.split('.').first) ?? 13;
     final parkedMin = '${widget.arrivalHour.split('.').first}.08';
+    final shortDate = AuthStore.formatRealTimeShortDate(now);
+    final dd = now.day.toString().padLeft(2, '0');
+    final mm = now.month.toString().padLeft(2, '0');
+    final yy = (now.year % 100).toString().padLeft(2, '0');
+    final seq = ((now.millisecondsSinceEpoch % 9000) + 1000).toString();
+    final newTicketCode = 'PV-$dd$mm$yy-$seq';
+
+    // Kurangi 1 slot parkir valet secara real-time di mall yang dipesan
+    AuthStore.recordNewValetBooking(widget.location.name);
 
     AuthStore.activeTicket = AuthStore.activeTicket.copyWith(
+      ticketCode: newTicketCode,
+      fullDate: AuthStore.formatRealTimeFullDate(now),
       locationName: widget.location.name,
       pickupLobby: widget.location.lobbySubtitle,
+      parkingArea: widget.location.parkingArea,
+      shortSlot: widget.location.shortSlot,
       vehicleName: widget.vehicle.name,
       plateNumber: widget.vehicle.plateNumber,
       vehicleSpecs: widget.vehicle.specs,
       vehiclePhotoBytes: widget.vehicle.photoBytes,
       entryTime: '${widget.arrivalDateLabel} • ${widget.arrivalHour}',
-      shortEntryTime: '8 Okt • ${widget.arrivalHour}',
+      shortEntryTime: '$shortDate • ${widget.arrivalHour}',
       startHour: widget.arrivalHour,
-      pickupTime: '${startH + 1}.55 WIB',
-      parkingHours: 2,
+      pickupTime: '${startH + 1}.00 WIB',
+      parkingHours: 1,
+      currentDuration: '0 menit 1 detik',
+      parkingStartedAt: DateTime.now(),
+      clearFrozenElapsed: true,
       walletBalance: AuthStore.walletBalance,
       statusText: 'Terparkir aman',
       valetPaymentMethod: _selectedMethod.title,
@@ -59,12 +76,12 @@ class _KonfirmasiBayarScreenState extends State<KonfirmasiBayarScreen> {
       isPickupRequested: false,
       journeySteps: [
         VehicleJourneyStep(
-          title: 'Diserahkan ke petugas',
+          title: 'Diserahkan ke petugas (Valet Rp35.000 Lunas)',
           subtitle: widget.location.lobbySubtitle,
           time: widget.arrivalHour,
         ),
         VehicleJourneyStep(
-          title: 'Terparkir aman',
+          title: 'Terparkir aman • Timer parkir dimulai',
           subtitle: widget.location.parkingArea,
           time: parkedMin,
         ),
@@ -83,7 +100,7 @@ class _KonfirmasiBayarScreenState extends State<KonfirmasiBayarScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Pembayaran valet Rp35.000 via ${_selectedMethod.title} berhasil!',
+          'Pembayaran valet Rp35.000 via ${_selectedMethod.title} berhasil! Timer parkir kini berjalan.',
         ),
       ),
     );
@@ -332,7 +349,10 @@ class _KonfirmasiBayarScreenState extends State<KonfirmasiBayarScreen> {
             value: 'Rp35.000',
           ),
           const SizedBox(height: 11),
-          const TicketDetailRow(label: 'Estimasi parkir 2 jam', value: 'Rp10.000'),
+          const TicketDetailRow(
+            label: 'Tarif parkir (akumulasi timer)',
+            value: 'Rp5.000 / jam',
+          ),
           const SizedBox(height: 11),
           const TicketDetailRow(label: 'Biaya layanan', value: 'Rp0'),
           Padding(
@@ -340,13 +360,13 @@ class _KonfirmasiBayarScreenState extends State<KonfirmasiBayarScreen> {
             child: Divider(height: 1, thickness: 1, color: AppColors.divider),
           ),
           const TicketDetailRow(
-            label: 'Estimasi total',
-            value: 'Rp45.000',
+            label: 'Dibayar saat pemesanan',
+            value: 'Rp35.000',
             isHighlight: true,
           ),
           const SizedBox(height: 8),
           Text(
-            'Parkir Rp5.000/jam, dibulatkan ke atas.',
+            'Parkir Rp5.000/jam dihitung otomatis dengan timer dan dibayar saat pengambilan.',
             style: TextStyle(color: AppColors.textMuted, fontSize: 11.4),
           ),
         ],
@@ -375,8 +395,7 @@ class _KonfirmasiBayarScreenState extends State<KonfirmasiBayarScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Rp35.000 dipotong sekarang. Biaya parkir dibayar '
-              'saat pengambilan sesuai durasi aktual.',
+              'Rp35.000 dipotong sekarang untuk layanan valet. Timer durasi parkir berjalan otomatis dan total akumulasi parkir dibayar saat mobil diambil.',
               style: TextStyle(
                 color: AppColors.navActive,
                 fontSize: 11.6,

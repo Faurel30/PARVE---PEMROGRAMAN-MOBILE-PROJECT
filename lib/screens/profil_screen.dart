@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../core/app_colors.dart';
 import '../models/auth_store.dart';
 import '../widgets/parve_bottom_nav.dart';
@@ -89,6 +90,20 @@ class _ProfilScreenState extends State<ProfilScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Ubah Foto Profil',
+                    style: TextStyle(
+                      color: AppColors.darkPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
               ListTile(
                 leading: Icon(
                   Icons.photo_library_outlined,
@@ -98,7 +113,26 @@ class _ProfilScreenState extends State<ProfilScreen> {
                   'Unggah Foto dari Galeri',
                   style: TextStyle(color: AppColors.darkPrimary),
                 ),
-                onTap: () => Navigator.pop(ctx, 'upload'),
+                subtitle: Text(
+                  'Pilih foto profil langsung dari galeri perangkat Anda',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12.0),
+                ),
+                onTap: () => Navigator.pop(ctx, 'gallery'),
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.camera_alt_outlined,
+                  color: AppColors.navActive,
+                ),
+                title: Text(
+                  'Ambil Foto dari Kamera',
+                  style: TextStyle(color: AppColors.darkPrimary),
+                ),
+                subtitle: Text(
+                  'Potret foto profil baru menggunakan kamera',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12.0),
+                ),
+                onTap: () => Navigator.pop(ctx, 'camera'),
               ),
               if (AuthStore.profilePhotoBytes != null)
                 ListTile(
@@ -118,10 +152,30 @@ class _ProfilScreenState extends State<ProfilScreen> {
       ),
     );
 
-    if (choice == 'upload') {
-      final data = await rootBundle.load('assets/images/logo_parve.png');
-      if (mounted) {
-        setState(() => AuthStore.profilePhotoBytes = data.buffer.asUint8List());
+    if (choice == 'gallery' || choice == 'camera') {
+      try {
+        final picker = ImagePicker();
+        final XFile? pickedFile = await picker.pickImage(
+          source:
+              choice == 'camera' ? ImageSource.camera : ImageSource.gallery,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
+        if (pickedFile != null) {
+          final bytes = await pickedFile.readAsBytes();
+          if (mounted) {
+            setState(() => AuthStore.profilePhotoBytes = bytes);
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal memuat foto dari perangkat: $e'),
+            ),
+          );
+        }
       }
     } else if (choice == 'remove' && mounted) {
       setState(() => AuthStore.profilePhotoBytes = null);

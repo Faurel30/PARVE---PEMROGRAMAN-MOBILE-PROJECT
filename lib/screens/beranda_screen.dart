@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/app_colors.dart';
 import '../models/auth_store.dart';
+import '../models/booking_models.dart';
 import '../widgets/parve_bottom_nav.dart';
 import '../widgets/parve_header.dart';
 import 'aktivitas_screen.dart';
+import 'daftar_mall_screen.dart';
 import 'dompet_screen.dart';
 import 'kendaraan_saya_screen.dart';
 import 'notifikasi_screen.dart';
@@ -69,6 +71,14 @@ class _BerandaScreenState extends State<BerandaScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _openDaftarMall() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const DaftarMallScreen()),
+    );
+    if (mounted) setState(() {});
+  }
+
   Future<void> _openKendaraanSaya() async {
     await Navigator.push(
       context,
@@ -110,7 +120,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
                       ),
                       const SizedBox(height: 18),
                       Text(
-                        'Kamis, 8 Oktober 2026',
+                        AuthStore.formatRealTimeFullDate(),
                         style: TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 12.0,
@@ -118,7 +128,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Selamat siang, $userName',
+                        '${AuthStore.realTimeGreeting()}, $userName',
                         style: TextStyle(
                           color: AppColors.darkPrimary,
                           fontSize: 23.5,
@@ -291,7 +301,8 @@ class _BerandaScreenState extends State<BerandaScreen> {
           ),
         ),
         GestureDetector(
-          onTap: _openPesanValet,
+          onTap: _openDaftarMall,
+          behavior: HitTestBehavior.opaque,
           child: Text(
             'Lihat semua',
             style: TextStyle(
@@ -306,8 +317,27 @@ class _BerandaScreenState extends State<BerandaScreen> {
   }
 
   Widget _buildMallCard() {
+    final featuredMall = ValetLocation.presets.firstWhere(
+      (m) =>
+          m.name.toLowerCase() ==
+          AuthStore.activeTicket.locationName.toLowerCase(),
+      orElse: () => ValetLocation.presets.first,
+    );
+    final isOpen = featuredMall.isMallOpen;
+    final hasParking = featuredMall.canBookValet;
+    final avail = featuredMall.availableSlots;
+    final total = featuredMall.totalSlots;
+
     return GestureDetector(
-      onTap: _openPesanValet,
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PesanValetScreen(initialLocation: featuredMall),
+          ),
+        );
+        if (mounted) setState(() {});
+      },
       child: Container(
         padding: const EdgeInsets.all(13),
         decoration: BoxDecoration(
@@ -321,7 +351,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Image.asset(
-                'assets/images/senayan_city.png',
+                featuredMall.imageAsset,
                 height: 136,
                 fit: BoxFit.cover,
               ),
@@ -348,7 +378,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Senayan City',
+                        featuredMall.name,
                         style: TextStyle(
                           color: AppColors.darkPrimary,
                           fontSize: 15.0,
@@ -357,7 +387,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Lobi utama • Pintu selatan',
+                        featuredMall.lobbySubtitle,
                         style: TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 11.8,
@@ -372,18 +402,25 @@ class _BerandaScreenState extends State<BerandaScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '1,2 km • Buka hingga 22.00',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11.8,
+                Expanded(
+                  child: Text(
+                    '${featuredMall.distanceKm} • ${featuredMall.mallStatusLabel}',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 11.6,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Text(
-                  'Tersedia',
+                  hasParking
+                      ? 'Tersedia ($avail/$total slot)'
+                      : (!isOpen ? 'Mall Tutup' : 'Penuh (0/$total)'),
                   style: TextStyle(
-                    color: AppColors.badgeGreen,
-                    fontSize: 12.2,
+                    color: hasParking
+                        ? AppColors.badgeGreen
+                        : const Color(0xFFB85D19),
+                    fontSize: 12.0,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

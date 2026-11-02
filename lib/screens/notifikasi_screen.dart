@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/app_colors.dart';
 import '../models/auth_store.dart';
+import '../models/booking_models.dart';
 import '../models/ticket_model.dart';
 import '../widgets/booking_step_header.dart';
 import '../widgets/ticket_card.dart';
@@ -17,13 +19,24 @@ class NotifikasiScreen extends StatefulWidget {
 }
 
 class _NotifikasiScreenState extends State<NotifikasiScreen> {
+  Timer? _liveTimer;
+
   ParkingTicket get _ticket => AuthStore.activeTicket;
 
-  void _openPesanValet() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const PesanValetScreen()),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _liveTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _ticket.frozenElapsedSeconds == null) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _liveTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _openPantau() async {
@@ -70,8 +83,8 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
           style: TextStyle(color: AppColors.darkPrimary),
         ),
         content: Text(
-          'Jika pemesanan valet Anda hangus atau membutuhkan bantuan pengambilan mobil, '
-          'hubungi petugas lobi Senayan City (Pintu Selatan).',
+          'Jika membutuhkan bantuan pemantauan atau pengambilan mobil, '
+          'hubungi petugas valet lobi ${_ticket.locationName} (${_ticket.pickupLobby}).',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
@@ -87,11 +100,10 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
   @override
   Widget build(BuildContext context) {
     final t = _ticket;
-    final expiredTicket = t.copyWith(
-      plateNumber: 'B 54311 TGO',
-      vehicleSpecs: '${t.vehicleSpecs.split('•').first.trim()} • 2025',
-    );
-    final unreadCount = t.isPickupRequested ? 4 : 3;
+    final hasSessionNotifications = AuthStore.hasBookedOnce || t.isActive;
+    final unreadCount = !hasSessionNotifications
+        ? 0
+        : (t.isPickupRequested ? 4 : 3);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: AppColors.pageOverlayStyle,
@@ -115,14 +127,14 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Hari ini, ${t.fullDate}',
+                            'Hari ini, ${AuthStore.formatRealTimeFullDate()}',
                             style: TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 12.0,
                             ),
                           ),
                           Text(
-                            '$unreadCount baru',
+                            unreadCount > 0 ? '$unreadCount baru' : '0 baru',
                             style: TextStyle(
                               color: AppColors.navActive,
                               fontSize: 12.0,
@@ -132,96 +144,108 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (t.isPickupRequested) ...[
+                      if (!hasSessionNotifications) ...[
+                        _buildEmptyNotificationsCard(),
+                      ] else ...[
+                        if (t.isPickupRequested) ...[
+                          _NotificationCard(
+                            iconBg: AppColors.badgeBg,
+                            iconColor: AppColors.badgeGreen,
+                            icon: Icons.verified_rounded,
+                            title: 'Pembayaran parkir berhasil',
+                            description:
+                                'Tagihan parkir sebesar ${t.formattedParkingFee} (${t.accumulatedHours} jam) '
+                                'untuk ${t.vehicleName} ${t.plateNumber} telah lunas. '
+                                'Petugas valet (${t.valetOfficerName}) sedang mengantar kendaraan Anda ke ${t.pickupLobby}.',
+                            ticket: t,
+                            metaLabel: 'Total transaksi selesai',
+                            metaValue: t.formattedGrandTotal,
+                            buttonLabel: 'Lihat status kendaraan',
+                            onButtonTap: _openPantau,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         _NotificationCard(
-                          iconBg: AppColors.badgeBg,
-                          iconColor: AppColors.badgeGreen,
-                          icon: Icons.payments_outlined,
-                          title: 'Pembayaran parkir berhasil',
-                          description:
-                              'Pembayaran parkir ${t.formattedParkingFee} (${t.parkingHours} jam) '
-                              'untuk ${t.vehicleName} ${t.plateNumber} telah lunas. '
-                              'Petugas (${t.valetOfficerName}) sedang mengantar mobil ke ${t.pickupLobby}.',
+                          iconBg: AppColors.navPillBg,
+                          iconColor: AppColors.navActive,
+                          icon: Icons.timer_outlined,
+                          title: t.isActive
+                              ? 'Sesi parkir sedang berlangsung'
+                              : 'Sesi parkir telah selesai',
+                          description: t.isActive
+                              ? 'Durasi parkir untuk ${t.vehicleName} ${t.plateNumber} tercatat '
+                                  'secara otomatis (${t.liveStopwatchText}). Tarif parkir gedung berlaku '
+                                  '${t.formattedHourlyRate}/jam dan dibayarkan saat pengambilan kendaraan.'
+                              : 'Sesi parkir untuk ${t.vehicleName} ${t.plateNumber} di ${t.locationName} '
+                                  'telah selesai dengan durasi akhir ${t.liveStopwatchText} (${t.accumulatedHours} jam).',
+                          showLocationBanner: true,
                           ticket: t,
-                          metaLabel: 'Total dibayar (Valet + Parkir)',
-                          metaValue: t.formattedGrandTotal,
-                          buttonLabel: 'Lihat status pengantaran',
+                          metaLabel:
+                              'Durasi & biaya parkir (${t.accumulatedHours} jam)',
+                          metaValue:
+                              '${t.liveStopwatchText} • ${t.formattedParkingFee}',
+                          buttonLabel: t.isActive
+                              ? 'Ambil kendaraan'
+                              : 'Lihat detail perjalanan',
+                          onButtonTap: t.isActive ? _openAmbil : _openPantau,
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Butuh bantuan?',
+                              style: TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 12.0,
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: _showHelpCenterDialog,
+                              child: Text(
+                                'Pusat bantuan',
+                                style: TextStyle(
+                                  color: AppColors.navActive,
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        _NotificationCard(
+                          iconBg: AppColors.navPillBg,
+                          iconColor: AppColors.navActive,
+                          icon: Icons.verified_user_outlined,
+                          title: 'Kendaraan terparkir aman',
+                          description:
+                              '${t.vehicleName} ${t.plateNumber} telah terparkir '
+                              'dengan aman di area ${t.parkingArea}. Anda dapat beraktivitas '
+                              'dengan tenang dan memantau status kendaraan kapan saja.',
+                          ticket: t,
+                          metaLabel: 'Lokasi slot & tarif gedung',
+                          metaValue:
+                              '${t.shortSlot} • ${t.formattedHourlyRate}/jam',
+                          buttonLabel: 'Pantau kendaraan',
                           onButtonTap: _openPantau,
                         ),
                         const SizedBox(height: 16),
+                        _NotificationCard(
+                          iconBg: AppColors.navPillBg,
+                          iconColor: AppColors.navActive,
+                          icon: Icons.directions_car_outlined,
+                          title: 'Kendaraan diterima petugas valet',
+                          description:
+                              '${t.vehicleName} ${t.plateNumber} telah diserahkan kepada '
+                              'petugas valet resmi (${t.valetOfficerName}). Pembayaran layanan valet sebesar ${t.valetFee} telah dikonfirmasi.',
+                          ticket: t,
+                          metaLabel: 'Waktu serah terima',
+                          metaValue: '${t.startHour} WIB • Valet ${t.valetFee}',
+                          buttonLabel: 'Pantau kendaraan',
+                          onButtonTap: _openPantau,
+                        ),
                       ],
-                      _NotificationCard(
-                        iconBg: AppColors.isDark
-                            ? const Color(0xFF3A2320)
-                            : const Color(0xFFF9ECEA),
-                        iconColor: const Color(0xFFD06A5E),
-                        icon: Icons.history_toggle_off_rounded,
-                        title: 'Pemesanan valet hangus',
-                        description:
-                            'Batas waktu kedatangan telah terlewati. Pemesanan '
-                            'valet Anda hangus dan tidak dapat digunakan lagi.',
-                        showLocationBanner: true,
-                        ticket: expiredTicket,
-                        metaLabel: 'Jadwal kedatangan',
-                        metaValue: '${t.entryTime} WIB',
-                        buttonLabel: 'Pesan valet lagi',
-                        onButtonTap: _openPesanValet,
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Butuh bantuan?',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 12.0,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: _showHelpCenterDialog,
-                            child: Text(
-                              'Pusat bantuan',
-                              style: TextStyle(
-                                color: AppColors.navActive,
-                                fontSize: 12.0,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      _NotificationCard(
-                        iconBg: AppColors.navPillBg,
-                        iconColor: AppColors.navActive,
-                        icon: Icons.history_toggle_off_rounded,
-                        title: 'Kendaraan diserahkan',
-                        description:
-                            '${t.vehicleName} ${t.plateNumber} berhasil diserahkan ke '
-                            'valet. Silakan pantau proses parkir kendaraan Anda.',
-                        ticket: t,
-                        metaLabel: 'Waktu status',
-                        metaValue: '${t.startHour} WIB • Durasi 0 menit',
-                        buttonLabel: 'Pantau kendaraan',
-                        onButtonTap: _openPantau,
-                      ),
-                      const SizedBox(height: 16),
-                      _NotificationCard(
-                        iconBg: AppColors.navPillBg,
-                        iconColor: AppColors.navActive,
-                        icon: Icons.history_toggle_off_rounded,
-                        title: 'Terparkir aman',
-                        description:
-                            '${t.vehicleName} ${t.plateNumber} telah terparkir '
-                            'aman di area ${t.parkingArea}. Anda dapat melanjutkan '
-                            'aktivitas sambil memantau atau mengambil kendaraan.',
-                        ticket: t,
-                        metaLabel: 'Area & tarif berjalan',
-                        metaValue: '${t.shortSlot} • ${t.formattedParkingFee}',
-                        buttonLabel: 'Ambil & bayar parkir',
-                        onButtonTap: _openAmbil,
-                      ),
                     ],
                   ),
                 ),
@@ -229,6 +253,92 @@ class _NotifikasiScreenState extends State<NotifikasiScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyNotificationsCard() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 34, 22, 28),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: AppColors.navPillBg,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.notifications_none_rounded,
+              color: AppColors.navActive,
+              size: 27,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Belum ada notifikasi layanan',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.darkPrimary,
+              fontSize: 17.2,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Notifikasi penerimaan kendaraan, sesi parkir berjalan, dan bukti pembayaran akan muncul secara otomatis setelah Anda memesan layanan valet.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12.5,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 22),
+          Material(
+            color: AppColors.goldButton,
+            borderRadius: BorderRadius.circular(11),
+            child: InkWell(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PesanValetScreen()),
+                );
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(11),
+              child: const SizedBox(
+                height: 47,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.directions_car_outlined,
+                      size: 18,
+                      color: AppColors.onGold,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Pesan valet sekarang',
+                      style: TextStyle(
+                        color: AppColors.onGold,
+                        fontSize: 13.8,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -322,7 +432,7 @@ class _NotificationCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(13),
               child: Image.asset(
-                'assets/images/senayan_city.png',
+                ValetLocation.imageAssetForMallName(ticket.locationName),
                 height: 118,
                 fit: BoxFit.cover,
               ),
