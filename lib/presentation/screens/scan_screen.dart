@@ -12,6 +12,8 @@ class ScanScreen extends StatefulWidget {
   final VoidCallback onSwitchOfficer;
   final VoidCallback? onShowEvaluation;
   final VoidCallback onViewSlots;
+  final VoidCallback? onViewVehicles;
+  final List<ValetVehicle>? vehicles;
   final bool animateLaser;
 
   const ScanScreen({
@@ -22,6 +24,8 @@ class ScanScreen extends StatefulWidget {
     required this.onSwitchOfficer,
     this.onShowEvaluation,
     required this.onViewSlots,
+    this.onViewVehicles,
+    this.vehicles,
     this.animateLaser = true,
   });
 
@@ -156,6 +160,69 @@ class _ScanScreenState extends State<ScanScreen> {
               ),
             ),
           ),
+          if (widget.onViewVehicles != null) ...[
+            const SizedBox(height: 10),
+            InkWell(
+              onTap: widget.onViewVehicles,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.goldBorder.withValues(alpha: 0.6), width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: AppColors.goldDarkBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.directions_car_rounded,
+                        color: AppColors.goldPrimary,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Antrean Kendaraan Valet',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            widget.vehicles != null
+                                ? '${widget.vehicles!.where((v) => v.status == ValetVehicleStatus.akanDatang).length} Mau Diparkir · ${widget.vehicles!.where((v) => v.status == ValetVehicleStatus.mauDiambil).length} Mau Diambil'
+                                : 'Kelola mobil masuk & keluar',
+                            style: const TextStyle(
+                              color: AppColors.goldMutedText,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: AppColors.goldPrimary,
+                      size: 12,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
 
           // Instruction rows

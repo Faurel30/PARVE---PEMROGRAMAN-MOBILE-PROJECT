@@ -6,7 +6,8 @@ import '../widgets/parve_header.dart';
 class NotificationsScreen extends StatefulWidget {
   final Officer officer;
   final List<OfficerNotification> notifications;
-  final VoidCallback onBackToScan;
+  final VoidCallback? onBackToVehicles;
+  final VoidCallback? onBackToScan;
   final VoidCallback onSwitchOfficer;
   final VoidCallback? onClearNotifications;
 
@@ -14,7 +15,8 @@ class NotificationsScreen extends StatefulWidget {
     super.key,
     required this.officer,
     required this.notifications,
-    required this.onBackToScan,
+    this.onBackToVehicles,
+    this.onBackToScan,
     required this.onSwitchOfficer,
     this.onClearNotifications,
   });
@@ -106,15 +108,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
           const SizedBox(height: 16),
 
-          // Secondary Action Button: Kembali ke scan
+          // Action Button: Kembali ke Daftar Kendaraan
           SizedBox(
             width: double.infinity,
             height: 48,
             child: OutlinedButton(
-              onPressed: widget.onBackToScan,
+              onPressed: widget.onBackToVehicles ?? widget.onBackToScan,
               style: OutlinedButton.styleFrom(
                 backgroundColor: AppColors.card,
-                side: const BorderSide(color: AppColors.border, width: 1.2),
+                side: const BorderSide(color: AppColors.goldBorder, width: 1.1),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -124,13 +126,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.crop_free_rounded,
+                    Icons.directions_car_rounded,
                     size: 19,
                     color: AppColors.goldPrimary,
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'Kembali ke scan',
+                    'Kembali ke Daftar Kendaraan',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 14,
@@ -143,10 +145,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Static Footnote
+          // Operational Footnote
           const Center(
             child: Text(
-              'Tampilan statis · Notifikasi tidak dikirim secara nyata',
+              'Tampilan operasional · Notifikasi persetujuan Admin disinkronisasi',
               style: TextStyle(
                 color: AppColors.textMuted,
                 fontSize: 11,

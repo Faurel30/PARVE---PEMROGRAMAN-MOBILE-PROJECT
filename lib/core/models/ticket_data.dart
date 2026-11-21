@@ -7,6 +7,7 @@ class Officer {
   final String email;
   final String officerId;
   final String phone;
+  final String uniqueCode;
 
   const Officer({
     required this.initials,
@@ -17,6 +18,7 @@ class Officer {
     this.email = '',
     this.officerId = '',
     this.phone = '',
+    this.uniqueCode = 'PV-7788',
   });
 
   static const Officer rizky = Officer(
@@ -28,6 +30,7 @@ class Officer {
     email: 'rizky.saputra@parve.id',
     officerId: 'PET-0810-01',
     phone: '081234567890',
+    uniqueCode: 'PV-7788',
   );
 
   static const Officer fajar = Officer(
@@ -39,7 +42,182 @@ class Officer {
     email: 'fajar.hidayat@parve.id',
     officerId: 'PET-0810-02',
     phone: '081298765432',
+    uniqueCode: 'PV-9900',
   );
+}
+
+enum ValetVehicleStatus {
+  akanDatang,
+  terparkir,
+  mauDiambil,
+  sudahDiambil;
+
+  String get label {
+    switch (this) {
+      case ValetVehicleStatus.akanDatang:
+        return 'Akan Datang (Mau Diparkir)';
+      case ValetVehicleStatus.terparkir:
+        return 'Terparkir';
+      case ValetVehicleStatus.mauDiambil:
+        return 'Mau Diambil';
+      case ValetVehicleStatus.sudahDiambil:
+        return 'Sudah Diambil / Keluar';
+    }
+  }
+
+  String get shortLabel {
+    switch (this) {
+      case ValetVehicleStatus.akanDatang:
+        return 'Mau Diparkir';
+      case ValetVehicleStatus.terparkir:
+        return 'Terparkir';
+      case ValetVehicleStatus.mauDiambil:
+        return 'Mau Diambil';
+      case ValetVehicleStatus.sudahDiambil:
+        return 'Sudah Keluar';
+    }
+  }
+}
+
+class ValetVehicle {
+  final String id;
+  final String plateNumber;
+  final String driverName;
+  final String vehicleModel;
+  final String slot;
+  final ValetVehicleStatus status;
+  final String entryTime;
+  final String? exitTime;
+  final String paymentStatus;
+  final String ticketNumber;
+  final String note;
+  final String phoneNumber;
+  final String officerName;
+
+  const ValetVehicle({
+    required this.id,
+    required this.plateNumber,
+    required this.driverName,
+    required this.vehicleModel,
+    required this.slot,
+    required this.status,
+    required this.entryTime,
+    this.exitTime,
+    required this.paymentStatus,
+    required this.ticketNumber,
+    this.note = '',
+    this.phoneNumber = '0812-3456-7890',
+    this.officerName = 'Rizky Saputra',
+  });
+
+  ValetVehicle copyWith({
+    String? id,
+    String? plateNumber,
+    String? driverName,
+    String? vehicleModel,
+    String? slot,
+    ValetVehicleStatus? status,
+    String? entryTime,
+    String? exitTime,
+    String? paymentStatus,
+    String? ticketNumber,
+    String? note,
+    String? phoneNumber,
+    String? officerName,
+  }) {
+    return ValetVehicle(
+      id: id ?? this.id,
+      plateNumber: plateNumber ?? this.plateNumber,
+      driverName: driverName ?? this.driverName,
+      vehicleModel: vehicleModel ?? this.vehicleModel,
+      slot: slot ?? this.slot,
+      status: status ?? this.status,
+      entryTime: entryTime ?? this.entryTime,
+      exitTime: exitTime ?? this.exitTime,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      ticketNumber: ticketNumber ?? this.ticketNumber,
+      note: note ?? this.note,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      officerName: officerName ?? this.officerName,
+    );
+  }
+
+  static List<ValetVehicle> generateSampleVehicles() {
+    return [
+      const ValetVehicle(
+        id: 'val-001',
+        plateNumber: 'B 1234 PAR',
+        driverName: 'Aditya Wijaya',
+        vehicleModel: 'Toyota Alphard · Hitam',
+        slot: 'A-018',
+        status: ValetVehicleStatus.terparkir,
+        entryTime: '14.15 WIB',
+        paymentStatus: 'Sudah Terverifikasi',
+        ticketNumber: 'PV-081026-0248',
+        note: 'Kunci disimpan di loker VIP 02. Mobil siap jalan.',
+        phoneNumber: '0812-8877-6655',
+        officerName: 'Rizky Saputra',
+      ),
+      const ValetVehicle(
+        id: 'val-002',
+        plateNumber: 'B 2024 FAK',
+        driverName: 'Farhan Akbar',
+        vehicleModel: 'Honda Civic · Putih',
+        slot: 'B-004',
+        status: ValetVehicleStatus.mauDiambil,
+        entryTime: '13.30 WIB',
+        exitTime: '14.30 WIB',
+        paymentStatus: 'Sudah Terverifikasi',
+        ticketNumber: 'PV-081026-0246',
+        note: 'Customer meminta mobil disiapkan di Lobi Barat GF.',
+        phoneNumber: '0813-2211-9988',
+        officerName: 'Fajar Hidayat',
+      ),
+      const ValetVehicle(
+        id: 'val-003',
+        plateNumber: 'B 8899 LUX',
+        driverName: 'Jessica Tan',
+        vehicleModel: 'Mercedes-Benz C200 · Abu-abu',
+        slot: 'Menunggu Slot',
+        status: ValetVehicleStatus.akanDatang,
+        entryTime: '14.38 WIB',
+        paymentStatus: 'Menunggu Konfirmasi',
+        ticketNumber: 'PV-081026-0250',
+        note: 'Baru tiba di Lobi Drop-off. Pengemudi menyerahkan kunci.',
+        phoneNumber: '0818-4455-6677',
+        officerName: 'Rizky Saputra',
+      ),
+      const ValetVehicle(
+        id: 'val-004',
+        plateNumber: 'D 1455 KEL',
+        driverName: 'Dimas Setiawan',
+        vehicleModel: 'Hyundai Ioniq 5 · Emas',
+        slot: 'C-002 (EV)',
+        status: ValetVehicleStatus.akanDatang,
+        entryTime: '14.40 WIB',
+        paymentStatus: 'Sudah Terverifikasi',
+        ticketNumber: 'PV-081026-0251',
+        note: 'Permintaan parkir di slot charger EV Lantai B1.',
+        phoneNumber: '0811-9988-7766',
+        officerName: 'Rizky Saputra',
+      ),
+      const ValetVehicle(
+        id: 'val-005',
+        plateNumber: 'B 9012 BOS',
+        driverName: 'Hendra Gunawan',
+        vehicleModel: 'BMW X5 · Hitam',
+        slot: 'A-001',
+        status: ValetVehicleStatus.sudahDiambil,
+        entryTime: '11.00 WIB',
+        exitTime: '14.10 WIB',
+        paymentStatus: 'Sudah Terverifikasi',
+        ticketNumber: 'PV-081026-0240',
+        note: 'Selesai serah terima di Lobi Utama oleh Petugas Fajar.',
+        phoneNumber: '0812-3344-5566',
+        officerName: 'Fajar Hidayat',
+      ),
+    ];
+  }
 }
 
 class VehicleTicket {
@@ -138,4 +316,3 @@ class OfficerNotification {
     isDetailOpen: true,
   );
 }
-

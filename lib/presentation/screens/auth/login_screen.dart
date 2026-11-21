@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _idController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _uniqueCodeController = TextEditingController();
 
   bool _isObscure = true;
   bool _rememberMe = true;
@@ -27,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _idController.dispose();
     _passwordController.dispose();
+    _uniqueCodeController.dispose();
     super.dispose();
   }
 
@@ -34,12 +36,13 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _idController.text = officer.email;
       _passwordController.text = defaultPass;
+      _uniqueCodeController.text = officer.uniqueCode;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Akun cepat terisi: ${officer.name} (${officer.shift})',
+          'Akun demo & kode unik terisi: ${officer.name} (${officer.uniqueCode})',
           style: const TextStyle(color: Colors.white, fontSize: 13),
         ),
         backgroundColor: AppColors.card,
@@ -61,6 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final result = await AuthService.instance.login(
       identifier: _idController.text,
       password: _passwordController.text,
+      uniqueCode: _uniqueCodeController.text,
     );
 
     if (!mounted) return;
@@ -196,41 +200,63 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540),
+            child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppColors.goldDarkBg,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.goldBorder),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.shield_rounded,
-                        color: AppColors.goldPrimary,
-                        size: 14,
+                // Header logo & badge
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.goldBorder, width: 1),
                       ),
-                      SizedBox(width: 6),
-                      Text(
-                        'PORTAL RESMI PETUGAS',
-                        style: TextStyle(
-                          color: AppColors.goldPrimary,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/parve_logo.png',
+                          fit: BoxFit.cover,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.goldDarkBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.goldBorder),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.shield_rounded,
+                            color: AppColors.goldPrimary,
+                            size: 14,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'PORTAL RESMI PETUGAS',
+                            style: TextStyle(
+                              color: AppColors.goldPrimary,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 14),
 
@@ -290,6 +316,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     }
                     if (value.trim().length < 6) {
                       return 'Kata sandi minimal 6 karakter';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 18),
+
+                // Field 3: Kode Unik Petugas (Khusus Login Petugas)
+                AuthTextField(
+                  label: 'Kode Unik Petugas (Otorisasi Akses)',
+                  hintText: 'contoh: PV-7788 atau 7788',
+                  controller: _uniqueCodeController,
+                  prefixIcon: Icons.vpn_key_rounded,
+                  textCapitalization: TextCapitalization.characters,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Kode unik petugas wajib diisi';
                     }
                     return null;
                   },
@@ -387,12 +429,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           _buildQuickChip(
                             title: 'Rizky Saputra',
-                            subtitle: 'Shift Pagi',
+                            subtitle: 'Shift Pagi · Kode: PV-7788',
                             onTap: () => _fillQuickAccount(Officer.rizky, 'password123'),
                           ),
                           _buildQuickChip(
                             title: 'Fajar Hidayat',
-                            subtitle: 'Shift Siang',
+                            subtitle: 'Shift Siang · Kode: PV-9900',
                             onTap: () => _fillQuickAccount(Officer.fajar, 'password123'),
                           ),
                         ],
@@ -443,7 +485,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-      ),
+      ))),
     );
   }
 

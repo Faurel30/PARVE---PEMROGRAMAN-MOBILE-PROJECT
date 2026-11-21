@@ -3,11 +3,9 @@ import '../../core/theme/app_colors.dart';
 import '../../core/models/ticket_data.dart';
 import '../../core/services/auth_service.dart';
 import 'auth/welcome_screen.dart';
-import 'scan_screen.dart';
-import 'scan_result_screen.dart';
+import 'vehicle_list_screen.dart';
 import 'notifications_screen.dart';
 import 'parking_slot_screen.dart';
-import '../widgets/evaluation_bottom_sheet.dart';
 
 class PetugasHomeScreen extends StatefulWidget {
   final bool animateLaser;
@@ -24,9 +22,16 @@ class PetugasHomeScreen extends StatefulWidget {
 }
 
 class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
-  int _currentTab = 0; // 0: Scan, 1: Slot Parkir, 2: Notifikasi
-  bool _hasScanResult = false; // true if showing Screen 2 (Hasil Scan Keluar)
+  int _currentTab = 0; // 0: Kendaraan, 1: Slot Parkir, 2: Notifikasi
   late Officer _currentOfficer;
+
+  // List of vehicles (Mau diparkir, terparkir, mau diambil, sudah keluar)
+  final List<ValetVehicle> _vehicles = ValetVehicle.generateSampleVehicles();
+
+  // List of notifications
+  final List<OfficerNotification> _notifications = [
+    OfficerNotification.sampleFigmaNotification,
+  ];
 
   @override
   void initState() {
@@ -36,24 +41,22 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
         Officer.rizky;
   }
 
-  // Active ticket being viewed
-  VehicleTicket _currentTicket = VehicleTicket.sampleExitScan;
-
-  // List of notifications
-  final List<OfficerNotification> _notifications = [
-    OfficerNotification.sampleFigmaNotification,
-  ];
-
-  void _onScanPressed([String? barcode]) {
+  void _onAddNewVehicle(ValetVehicle newVehicle, OfficerNotification newNotif) {
     setState(() {
-      _hasScanResult = true;
-      _currentTicket = VehicleTicket.sampleExitScan;
+      _vehicles.insert(0, newVehicle);
+      _notifications.insert(0, newNotif);
     });
   }
 
-  void _onScanNext() {
+  void _onUpdateVehicle(ValetVehicle updatedVehicle, OfficerNotification? newNotif) {
     setState(() {
-      _hasScanResult = false;
+      final index = _vehicles.indexWhere((v) => v.id == updatedVehicle.id);
+      if (index != -1) {
+        _vehicles[index] = updatedVehicle;
+      }
+      if (newNotif != null) {
+        _notifications.insert(0, newNotif);
+      }
     });
   }
 
@@ -65,10 +68,9 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
     });
   }
 
-  void _switchToScan() {
+  void _switchToVehicles() {
     setState(() {
       _currentTab = 0;
-      _hasScanResult = false;
       // Return to active officer
       if (_currentOfficer.initials == 'FH' && widget.initialOfficer != null) {
         _currentOfficer = widget.initialOfficer!;
@@ -76,16 +78,11 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
     });
   }
 
-  void _switchToSlots() {
-    setState(() {
-      _currentTab = 1;
-    });
-  }
-
   void _showOfficerMenu() {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
+      constraints: const BoxConstraints(maxWidth: 640),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -258,108 +255,17 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
     );
   }
 
-  void _simulateAdminApproval() {
-    // Generate approval notification
-    final newNotif = OfficerNotification(
-      id: 'notif-${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Keluar Disetujui',
-      subtitle: '${_currentTicket.plateNumber} · ${_currentTicket.driverName}',
-      time: '14.38',
-      authorInfo: 'Admin Dimas Pratama · Detail notifikasi terbuka',
-      ticket: VehicleTicket(
-        plateNumber: _currentTicket.plateNumber,
-        driverName: _currentTicket.driverName,
-        vehicleModel: _currentTicket.vehicleModel,
-        ticketNumber: _currentTicket.ticketNumber,
-        slot: _currentTicket.slot,
-        scanTime: _currentTicket.scanTime,
-        officerName: _currentOfficer.name,
-        paymentStatus: 'Sudah terverifikasi',
-        exitApprovalStatus: 'Keluar Disetujui',
-        isApproved: true,
-        approvedBy: 'Admin Dimas Pratama',
-        approvalTime: '8 Okt 2026 · 14.38 WIB',
-        transactionStatus: 'Selesai',
-      ),
-      isDetailOpen: true,
-    );
-
-    setState(() {
-      _notifications.insert(0, newNotif);
-      _currentTab = 2; // Jump to notifications tab
-      _currentOfficer = Officer.fajar;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          '🔔 Notifikasi Baru: Keluar telah disetujui oleh Admin!',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Color(0xFF1B4D2E),
-        duration: Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showEvaluationSheet() {
-    EvaluationBottomSheet.show(
-      context,
-      onSimulateManualPlate: (plate) {
-        setState(() {
-          _currentTicket = VehicleTicket(
-            plateNumber: plate.isNotEmpty ? plate : 'B 1234 PAR',
-            driverName: 'Aditya Wijaya (Input Manual)',
-            vehicleModel: 'Toyota Alphard · Hitam',
-            ticketNumber: 'PV-081026-0248',
-            slot: 'A-018',
-            scanTime: '8 Okt 2026 · 14.40 WIB',
-            officerName: _currentOfficer.name,
-            paymentStatus: 'Sudah terverifikasi',
-            exitApprovalStatus: 'Belum disetujui',
-          );
-          _hasScanResult = true;
-          _currentTab = 0;
-        });
-      },
-      onSimulateEmergencyGate: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              '⚠️ Palang Darurat Dibuka Manual oleh Petugas. Log tersimpan ke server!',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-            ),
-            backgroundColor: Color(0xFF701A1A),
-            duration: Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildBody() {
     switch (_currentTab) {
       case 0:
-        return _hasScanResult
-            ? ScanResultScreen(
-                officer: _currentOfficer,
-                ticket: _currentTicket,
-                onScanNext: _onScanNext,
-                onOpenNotifications: _switchToNotifications,
-                onSimulateAdminApproval: _simulateAdminApproval,
-                onSwitchOfficer: _showOfficerMenu,
-              )
-            : ScanScreen(
-                officer: _currentOfficer,
-                onScanPressed: _onScanPressed,
-                onOpenNotifications: _switchToNotifications,
-                onSwitchOfficer: _showOfficerMenu,
-                onShowEvaluation: _showEvaluationSheet,
-                onViewSlots: _switchToSlots,
-                animateLaser: widget.animateLaser,
-              );
+        return VehicleListScreen(
+          officer: _currentOfficer,
+          vehicles: _vehicles,
+          onAddNewVehicle: _onAddNewVehicle,
+          onUpdateVehicle: _onUpdateVehicle,
+          onOpenNotifications: _switchToNotifications,
+          onSwitchOfficer: _showOfficerMenu,
+        );
       case 1:
         return ParkingSlotScreen(
           officer: _currentOfficer,
@@ -371,7 +277,8 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
         return NotificationsScreen(
           officer: _currentOfficer,
           notifications: _notifications,
-          onBackToScan: _switchToScan,
+          onBackToVehicles: _switchToVehicles,
+          onBackToScan: _switchToVehicles,
           onSwitchOfficer: _showOfficerMenu,
         );
     }
@@ -382,31 +289,50 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: _buildBody(),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: _buildBody(),
+          ),
+        ),
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: Container(
+        height: 72,
+        decoration: const BoxDecoration(
+          color: AppColors.navBackground,
+          border: Border(
+            top: BorderSide(color: AppColors.divider, width: 1),
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: _buildBottomNav(),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildBottomNav() {
-    return Container(
-      height: 72,
-      decoration: const BoxDecoration(
-        color: AppColors.navBackground,
-        border: Border(
-          top: BorderSide(color: AppColors.divider, width: 1),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    final pendingCount = _vehicles
+        .where((v) =>
+            v.status == ValetVehicleStatus.akanDatang ||
+            v.status == ValetVehicleStatus.mauDiambil)
+        .length;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          // Tab 0: Scan
+          // Tab 0: Kendaraan (Utama Petugas)
           _buildNavItem(
             index: 0,
-            icon: Icons.crop_free_rounded,
-            label: 'Scan',
+            icon: Icons.directions_car_rounded,
+            label: 'Kendaraan',
             isActive: _currentTab == 0,
+            badgeCount: pendingCount,
             onTap: () {
               setState(() {
                 _currentTab = 0;
@@ -459,8 +385,8 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(
-          horizontal: isActive ? 20 : 14,
-          vertical: 8,
+          horizontal: isActive ? 12 : 8,
+          vertical: 6,
         ),
         decoration: BoxDecoration(
           color: isActive ? AppColors.navActiveBg : Colors.transparent,
@@ -480,7 +406,7 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
               children: [
                 Icon(
                   icon,
-                  size: 20,
+                  size: 19,
                   color: isActive
                       ? AppColors.goldPrimary
                       : AppColors.navInactiveText,
@@ -500,14 +426,14 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
                   ),
               ],
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
                 color: isActive
                     ? AppColors.goldPrimary
                     : AppColors.navInactiveText,
-                fontSize: 12.5,
+                fontSize: 11.5,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
               ),
             ),

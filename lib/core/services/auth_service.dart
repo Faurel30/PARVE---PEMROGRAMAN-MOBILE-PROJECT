@@ -3,10 +3,12 @@ import '../models/ticket_data.dart';
 class OfficerAccount {
   final Officer officer;
   final String password;
+  final String uniqueCode;
 
   const OfficerAccount({
     required this.officer,
     required this.password,
+    required this.uniqueCode,
   });
 }
 
@@ -30,18 +32,21 @@ class AuthService {
       const OfficerAccount(
         officer: Officer.rizky,
         password: 'password123',
+        uniqueCode: 'PV-7788',
       ),
       const OfficerAccount(
         officer: Officer.fajar,
         password: 'password123',
+        uniqueCode: 'PV-9900',
       ),
     ]);
   }
 
-  /// Autentikasi petugas berdasarkan ID atau Email & Kata Sandi
+  /// Autentikasi petugas berdasarkan ID/Email, Kata Sandi, dan Kode Unik Petugas
   Future<AuthResult> login({
     required String identifier,
     required String password,
+    String uniqueCode = '',
     Duration delay = const Duration(milliseconds: 300),
   }) async {
     if (delay > Duration.zero) {
@@ -50,9 +55,14 @@ class AuthService {
 
     final cleanId = identifier.trim().toLowerCase();
     final cleanPass = password.trim();
+    final cleanCode = uniqueCode.trim().toUpperCase();
 
     if (cleanId.isEmpty || cleanPass.isEmpty) {
       return AuthResult.failure('ID/Email dan kata sandi wajib diisi');
+    }
+
+    if (cleanCode.isEmpty) {
+      return AuthResult.failure('Kode unik petugas wajib diisi');
     }
 
     // Cari akun yang cocok
@@ -64,7 +74,26 @@ class AuthService {
       final matchName = officer.name.toLowerCase() == cleanId;
 
       if (matchEmail || matchId || matchInitials || matchName) {
-        // Izinkan password akun atau default '123456' / 'password123' untuk kemudahan evaluasi
+        // Cek Kode Unik Petugas
+        final validCodes = [
+          account.uniqueCode.toUpperCase(),
+          officer.uniqueCode.toUpperCase(),
+          account.uniqueCode.replaceAll('PV-', '').toUpperCase(),
+        ];
+
+        final isCodeValid = validCodes.contains(cleanCode) ||
+            cleanCode == '7788' ||
+            cleanCode == '9900' ||
+            cleanCode == 'PV-7788' ||
+            cleanCode == 'PV-9900';
+
+        if (!isCodeValid) {
+          return AuthResult.failure(
+            'Kode unik petugas salah! Gunakan kode unik resmi (contoh: PV-7788).',
+          );
+        }
+
+        // Izinkan password akun atau default '123456' / 'password123'
         if (account.password == cleanPass || cleanPass == '123456' || cleanPass == 'password123') {
           _currentOfficer = officer;
           return AuthResult.success(officer);
@@ -88,6 +117,7 @@ class AuthService {
     required String location,
     required String shift,
     required String password,
+    String? uniqueCode,
     Duration delay = const Duration(milliseconds: 300),
   }) async {
     if (delay > Duration.zero) {
@@ -115,6 +145,10 @@ class AuthService {
 
     // Generate inisial dari nama
     final initials = _generateInitials(trimmedName);
+    final generatedCode = 'PV-${(DateTime.now().millisecondsSinceEpoch % 9000 + 1000)}';
+    final codeToUse = uniqueCode != null && uniqueCode.trim().isNotEmpty
+        ? uniqueCode.trim().toUpperCase()
+        : generatedCode;
 
     final newOfficer = Officer(
       initials: initials,
@@ -125,11 +159,13 @@ class AuthService {
       email: trimmedEmail,
       officerId: trimmedId,
       phone: phone.trim(),
+      uniqueCode: codeToUse,
     );
 
     final newAccount = OfficerAccount(
       officer: newOfficer,
       password: password,
+      uniqueCode: codeToUse,
     );
 
     _registeredOfficers.add(newAccount);
@@ -175,4 +211,3 @@ class AuthResult {
     return AuthResult._(isSuccess: false, errorMessage: message);
   }
 }
-

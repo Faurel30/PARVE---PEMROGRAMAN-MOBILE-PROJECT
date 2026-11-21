@@ -51,7 +51,7 @@ void main() {
     // Verify successfully entered PetugasHomeScreen
     expect(find.text('Pacific Place'), findsOneWidget);
     expect(find.text('Petugas Parkir'), findsOneWidget);
-    expect(find.text('Scan Barcode'), findsOneWidget);
+    expect(find.text('Antrean & Daftar Kendaraan'), findsOneWidget);
   });
 
   testWidgets('Auth flow: Welcome Screen to Register new Officer and into Home', (WidgetTester tester) async {
@@ -104,7 +104,7 @@ void main() {
     expect(find.text('Budi Santoso'), findsOneWidget);
   });
 
-  testWidgets('Complete Petugas flow with Live Camera Scan and Parking Slot Monitoring', (WidgetTester tester) async {
+  testWidgets('Complete Petugas flow with Vehicle Management and Parking Slot Monitoring', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(() {
@@ -112,7 +112,7 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    // 1. Build our app (Screen 1: Petugas · Scan Barcode)
+    // 1. Build our app (Default Landing Tab: Kendaraan)
     await tester.pumpWidget(const ParvePetugasApp(
       animateLaser: false,
       home: PetugasHomeScreen(
@@ -122,16 +122,29 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    // Verify Screen 1 elements
+    // Verify Kendaraan screen elements
     expect(find.text('Pacific Place'), findsOneWidget);
     expect(find.text('Petugas Parkir'), findsOneWidget);
     expect(find.text('Rizky Saputra'), findsOneWidget);
     expect(find.text('Bertugas'), findsOneWidget);
-    expect(find.text('Scan Barcode'), findsOneWidget);
-    expect(find.text('Ketersediaan Slot Parkir'), findsOneWidget);
-    expect(find.text('Scan barcode user'), findsOneWidget);
+    expect(find.text('Antrean & Daftar Kendaraan'), findsOneWidget);
+    expect(find.text('B 1234 PAR'), findsOneWidget);
+    expect(find.text('B 8899 LUX'), findsOneWidget);
 
-    // 2. Test Parking Slot Tab
+    // 2. Tap on vehicle card to open detail sheet
+    await tester.tap(find.text('B 1234 PAR'));
+    await tester.pumpAndSettle();
+
+    // Verify detail sheet opened
+    expect(find.text('Pengemudi / Pemilik'), findsOneWidget);
+    expect(find.text('Aditya Wijaya'), findsAtLeastNWidgets(1));
+    expect(find.text('Tutup'), findsOneWidget);
+
+    // Close detail sheet
+    await tester.tap(find.text('Tutup'));
+    await tester.pumpAndSettle();
+
+    // 3. Test Parking Slot Tab
     await tester.tap(find.text('Slot'));
     await tester.pumpAndSettle();
 
@@ -146,54 +159,20 @@ void main() {
     await tester.tap(find.text('A-018'));
     await tester.pumpAndSettle();
 
-    // Verify modal detail for A-018 (Toyota Alphard Aditya Wijaya)
+    // Verify modal detail for A-018
     expect(find.text('Toyota Alphard · Hitam'), findsAtLeastNWidgets(1));
     expect(find.text('Aditya Wijaya'), findsAtLeastNWidgets(1));
-    expect(find.text('B 1234 PAR'), findsAtLeastNWidgets(1));
 
     // Close modal
     await tester.tap(find.text('Tutup'));
     await tester.pumpAndSettle();
 
-    // 3. Return to Scan tab
-    await tester.tap(find.text('Scan'));
+    // 4. Test Notifikasi Tab
+    await tester.tap(find.text('Notifikasi'));
     await tester.pumpAndSettle();
 
-    // 4. Tap "Scan barcode user" -> Opens CameraScanScreen
-    await tester.tap(find.text('Scan barcode user'));
-    await tester.pumpAndSettle();
-
-    // Verify CameraScanScreen opened
-    expect(find.text('Kamera Aktif Petugas'), findsOneWidget);
-    expect(find.text('Deteksi Barcode Tiket (PV-081026-0248)'), findsOneWidget);
-
-    // 5. Trigger Barcode detection in camera
-    await tester.tap(find.text('Deteksi Barcode Tiket (PV-081026-0248)'));
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pumpAndSettle();
-
-    // 6. Verify Screen 2 (Hasil Scan Keluar)
-    expect(find.text('Hasil Scan Keluar'), findsOneWidget);
-    expect(find.text('Barcode valid · Scan diterima Admin'), findsOneWidget);
-    expect(find.text('Menunggu verifikasi Admin'), findsOneWidget);
-    expect(find.text('B 1234 PAR'), findsOneWidget);
-    expect(find.text('PV-081026-0248'), findsOneWidget);
-
-    // 7. Tap "Simulasikan Keputusan Admin" -> Transitions to Screen 3 (Notifikasi)
-    await tester.tap(find.text('Simulasikan Keputusan Admin (Terima Notifikasi)'));
-    await tester.pumpAndSettle();
-
-    // Verify Screen 3 elements
+    // Verify Notifikasi Screen elements
     expect(find.text('Notifikasi'), findsAtLeastNWidgets(1));
     expect(find.text('Keluar Disetujui'), findsAtLeastNWidgets(1));
-    expect(find.text('Detail persetujuan keluar'), findsAtLeastNWidgets(1));
-    expect(find.text('Kembali ke scan'), findsOneWidget);
-
-    // 8. Tap "Kembali ke scan"
-    await tester.tap(find.text('Kembali ke scan'));
-    await tester.pumpAndSettle();
-
-    // Verify back to dashboard scan screen
-    expect(find.text('Scan Barcode'), findsOneWidget);
   });
 }

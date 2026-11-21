@@ -129,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Akun petugas atas nama ${result.officer!.name} (${result.officer!.officerId}) telah aktif dan siap digunakan bertugas.',
+                'Akun petugas atas nama ${result.officer!.name} (${result.officer!.officerId}) telah aktif.\n\nKode Unik Login Petugas: ${result.officer!.uniqueCode}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
@@ -210,41 +210,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540),
+            child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppColors.goldDarkBg,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.goldBorder),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.person_add_alt_1_rounded,
-                        color: AppColors.goldPrimary,
-                        size: 14,
+                // Header logo & badge
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.goldBorder, width: 1),
                       ),
-                      SizedBox(width: 6),
-                      Text(
-                        'FORMULIR AKUN BARU',
-                        style: TextStyle(
-                          color: AppColors.goldPrimary,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/parve_logo.png',
+                          fit: BoxFit.cover,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.goldDarkBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.goldBorder),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.person_add_alt_1_rounded,
+                            color: AppColors.goldPrimary,
+                            size: 14,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'FORMULIR AKUN BARU',
+                            style: TextStyle(
+                              color: AppColors.goldPrimary,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 14),
 
@@ -495,7 +517,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
         ),
-      ),
+      ))),
     );
   }
 

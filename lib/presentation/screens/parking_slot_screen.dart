@@ -75,6 +75,7 @@ class _ParkingSlotScreenState extends State<ParkingSlotScreen> {
       context: context,
       backgroundColor: AppColors.background,
       isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 640),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

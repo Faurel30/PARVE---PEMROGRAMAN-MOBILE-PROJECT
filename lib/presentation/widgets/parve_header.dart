@@ -25,42 +25,24 @@ class ParveHeader extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // PARVE Gold Logo Mark
+            // PARVE Official Circular Gold Logo Badge
             Container(
-              width: 40,
-              height: 40,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: const Color(0xFF231D12),
-                borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: AppColors.goldBorder, width: 1),
-              ),
-              child: const Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Padding(
-                    padding: EdgeInsets.all(4.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.directions_car_rounded,
-                          color: AppColors.goldPrimary,
-                          size: 17,
-                        ),
-                        SizedBox(height: 1),
-                        Text(
-                          'PARVE',
-                          style: TextStyle(
-                            color: AppColors.goldPrimary,
-                            fontSize: 7,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.8,
-                            height: 1.0,
-                          ),
-                        ),
-                      ],
-                    ),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.goldBorder, width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.goldPrimary.withValues(alpha: 0.15),
+                    blurRadius: 8,
                   ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/parve_logo.png',
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
