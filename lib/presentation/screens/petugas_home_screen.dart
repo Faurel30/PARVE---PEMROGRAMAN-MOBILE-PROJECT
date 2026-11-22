@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/models/ticket_data.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/supabase_service.dart';
 import 'auth/welcome_screen.dart';
 import 'vehicle_list_screen.dart';
 import 'notifications_screen.dart';
@@ -28,10 +30,9 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
   // List of vehicles (Mau diparkir, terparkir, mau diambil, sudah keluar)
   final List<ValetVehicle> _vehicles = ValetVehicle.generateSampleVehicles();
 
-  // List of notifications
-  final List<OfficerNotification> _notifications = [
-    OfficerNotification.sampleFigmaNotification,
-  ];
+  // List of notifications – diinisialisasi dari status semua kendaraan
+  late List<OfficerNotification> _notifications;
+  StreamSubscription<List<OfficerNotification>>? _notifSubscription;
 
   @override
   void initState() {
@@ -39,13 +40,31 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
     _currentOfficer = widget.initialOfficer ??
         AuthService.instance.currentOfficer ??
         Officer.rizky;
+
+    // Inisialisasi notifikasi dari status semua kendaraan saat ini
+    _notifications = OfficerNotification.generateInitialNotifications(_vehicles);
+
+    // Berlangganan stream realtime Supabase / lokal
+    _notifSubscription = SupabaseService.instance.streamNotifications().listen((notifs) {
+      if (mounted && notifs.isNotEmpty) {
+        setState(() {
+          _notifications = List.from(notifs);
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notifSubscription?.cancel();
+    super.dispose();
   }
 
   void _onAddNewVehicle(ValetVehicle newVehicle, OfficerNotification newNotif) {
     setState(() {
       _vehicles.insert(0, newVehicle);
-      _notifications.insert(0, newNotif);
     });
+    SupabaseService.instance.sendNotification(newNotif);
   }
 
   void _onUpdateVehicle(ValetVehicle updatedVehicle, OfficerNotification? newNotif) {
@@ -54,10 +73,36 @@ class _PetugasHomeScreenState extends State<PetugasHomeScreen> {
       if (index != -1) {
         _vehicles[index] = updatedVehicle;
       }
-      if (newNotif != null) {
-        _notifications.insert(0, newNotif);
-      }
     });
+    if (newNotif != null) {
+      SupabaseService.instance.sendNotification(newNotif);
+      // Tampilkan snackbar notifikasi status baru
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  newNotif.title,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1E2129),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          action: SnackBarAction(
+            label: 'Lihat',
+            textColor: const Color(0xFFE5A93C),
+            onPressed: () => setState(() => _currentTab = 2),
+          ),
+        ),
+      );
+    }
   }
 
   void _switchToNotifications() {

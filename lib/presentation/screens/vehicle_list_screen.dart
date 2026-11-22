@@ -175,12 +175,16 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                     status: ValetVehicleStatus.terparkir,
                     note: 'Mobil berhasil diparkirkan di Slot $selectedSlot oleh ${widget.officer.name}.',
                   );
-                  widget.onUpdateVehicle?.call(updated, null);
+                  final notif = OfficerNotification.fromVehicleStatus(
+                    vehicle: updated,
+                    status: ValetVehicleStatus.terparkir,
+                  );
+                  widget.onUpdateVehicle?.call(updated, notif);
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        '✅ ${vehicle.plateNumber} berhasil diparkirkan di Slot $selectedSlot',
+                        '🅿️ ${vehicle.plateNumber} berhasil diparkirkan di Slot $selectedSlot',
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                       ),
                       backgroundColor: const Color(0xFF14241B),
@@ -210,87 +214,255 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(2),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Header Detail
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.goldBorder),
-                      ),
-                      child: Text(
-                        vehicle.plateNumber,
-                        style: const TextStyle(
-                          color: AppColors.goldPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
+                  // Header Detail
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.goldBorder),
+                        ),
+                        child: Text(
+                          vehicle.plateNumber,
+                          style: const TextStyle(
+                            color: AppColors.goldPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              vehicle.vehicleModel,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              'Tiket: ${vehicle.ticketNumber}',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _buildStatusChip(vehicle.status),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Foto Kendaraan & Tag Cek Fisik Valet
+                  Container(
+                    width: double.infinity,
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF13151B),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border, width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Stack(
+                        fit: StackFit.expand,
                         children: [
-                          Text(
-                            vehicle.vehicleModel,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                          Image.network(
+                            vehicle.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (ctx, err, stack) {
+                              return Container(
+                                color: const Color(0xFF1A1D24),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.directions_car_rounded,
+                                        size: 48,
+                                        color: AppColors.goldPrimary,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        vehicle.vehicleModel,
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (ctx, child, progress) {
+                              if (progress == null) return child;
+                              return Container(
+                                color: const Color(0xFF1A1D24),
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.goldPrimary,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          // Dark gradient overlay for bottom tags readability
+                          Positioned.fill(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.75),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                          Text(
-                            'Tiket: ${vehicle.ticketNumber}',
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
+                          // Top Tag: Foto Mobil Fisik Valet
+                          Positioned(
+                            top: 10,
+                            left: 10,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.75),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: AppColors.goldBorder.withValues(alpha: 0.6)),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.camera_alt_rounded, size: 12, color: AppColors.goldPrimary),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Foto Fisik Valet',
+                                    style: TextStyle(
+                                      color: AppColors.goldPrimary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // Bottom Tag: Keterangan Transmisi & Cek Bodi
+                          Positioned(
+                            bottom: 10,
+                            left: 10,
+                            right: 10,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.85),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      '${vehicle.transmission} · ${vehicle.fuelType}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF14241B),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: AppColors.successGreen.withValues(alpha: 0.5)),
+                                  ),
+                                  child: Text(
+                                    vehicle.bodyCondition,
+                                    style: const TextStyle(
+                                      color: AppColors.successGreen,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                    _buildStatusChip(vehicle.status),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                const Divider(color: AppColors.divider),
-                const SizedBox(height: 12),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: AppColors.divider),
+                  const SizedBox(height: 10),
 
-                // Detail Fields
-                _buildDetailRow(Icons.person_rounded, 'Pengemudi / Pemilik', vehicle.driverName),
-                _buildDetailRow(Icons.phone_rounded, 'Nomor Kontak', vehicle.phoneNumber),
-                _buildDetailRow(Icons.local_parking_rounded, 'Lokasi Slot', vehicle.slot),
-                _buildDetailRow(Icons.access_time_rounded, 'Waktu Masuk', vehicle.entryTime),
-                if (vehicle.exitTime != null)
-                  _buildDetailRow(Icons.logout_rounded, 'Waktu Pengambilan', vehicle.exitTime!),
-                _buildDetailRow(Icons.payments_rounded, 'Status Pembayaran', vehicle.paymentStatus),
-                _buildDetailRow(Icons.badge_rounded, 'Petugas Bertanggung Jawab', vehicle.officerName),
-                if (vehicle.note.isNotEmpty)
-                  _buildDetailRow(Icons.notes_rounded, 'Catatan Valet', vehicle.note),
+                  // Detail Fields & Keterangan Lengkap
+                  _buildDetailRow(Icons.person_rounded, 'Pengemudi / Pemilik', vehicle.driverName),
+                  _buildDetailRow(Icons.phone_rounded, 'Nomor Kontak', vehicle.phoneNumber),
+                  _buildDetailRow(Icons.palette_rounded, 'Warna Kendaraan', vehicle.color),
+                  _buildDetailRow(Icons.local_parking_rounded, 'Lokasi Slot', vehicle.slot),
+                  _buildDetailRow(Icons.vpn_key_rounded, 'Posisi Kunci Valet', vehicle.keyLocker),
+                  _buildDetailRow(Icons.speed_rounded, 'Transmisi / Mesin', '${vehicle.transmission} · ${vehicle.fuelType}'),
+                  _buildDetailRow(Icons.verified_rounded, 'Kondisi Cek Fisik', vehicle.bodyCondition),
+                  _buildDetailRow(Icons.access_time_rounded, 'Waktu Masuk', vehicle.entryTime),
+                  if (vehicle.exitTime != null)
+                    _buildDetailRow(Icons.logout_rounded, 'Waktu Pengambilan', vehicle.exitTime!),
+                  _buildDetailRow(Icons.payments_rounded, 'Status Pembayaran', vehicle.paymentStatus),
+                  _buildDetailRow(Icons.badge_rounded, 'Petugas Bertanggung Jawab', vehicle.officerName),
+                  if (vehicle.note.isNotEmpty)
+                    _buildDetailRow(Icons.notes_rounded, 'Catatan Valet', vehicle.note),
 
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // Action Buttons
+                  // Action Buttons
                 Row(
                   children: [
                     if (vehicle.status == ValetVehicleStatus.akanDatang) ...[
@@ -327,7 +499,8 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                               status: ValetVehicleStatus.mauDiambil,
                               note: 'Customer meminta mobil disiapkan di Lobi Pick-up.',
                             );
-                            widget.onUpdateVehicle?.call(updated, null);
+                                                        final notif = OfficerNotification.fromVehicleStatus(vehicle: updated, status: ValetVehicleStatus.mauDiambil);
+                            widget.onUpdateVehicle?.call(updated, notif);
                           },
                         ),
                       ),
@@ -349,7 +522,8 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                               exitTime: '${DateTime.now().hour}.${DateTime.now().minute} WIB',
                               note: 'Selesai serah terima kunci dan mobil keluar area valet.',
                             );
-                            widget.onUpdateVehicle?.call(updated, null);
+                                                        final notif2 = OfficerNotification.fromVehicleStatus(vehicle: updated, status: ValetVehicleStatus.sudahDiambil);
+                            widget.onUpdateVehicle?.call(updated, notif2);
                           },
                         ),
                       ),
@@ -373,7 +547,7 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                 const SizedBox(height: 10),
               ],
             ),
-          ),
+          )),
         );
       },
     );
@@ -927,7 +1101,8 @@ class _VehicleListScreenState extends State<VehicleListScreen> {
                           exitTime: '${DateTime.now().hour}.${DateTime.now().minute} WIB',
                           note: 'Selesai serah terima di lobi.',
                         );
-                        widget.onUpdateVehicle?.call(updated, null);
+                                                final notifCard = OfficerNotification.fromVehicleStatus(vehicle: updated, status: ValetVehicleStatus.sudahDiambil);
+                        widget.onUpdateVehicle?.call(updated, notifCard);
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Container(

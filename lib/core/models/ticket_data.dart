@@ -93,6 +93,12 @@ class ValetVehicle {
   final String note;
   final String phoneNumber;
   final String officerName;
+  final String imageUrl;
+  final String transmission;
+  final String fuelType;
+  final String bodyCondition;
+  final String color;
+  final String keyLocker;
 
   const ValetVehicle({
     required this.id,
@@ -108,6 +114,12 @@ class ValetVehicle {
     this.note = '',
     this.phoneNumber = '0812-3456-7890',
     this.officerName = 'Rizky Saputra',
+    this.imageUrl = 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=800&q=80',
+    this.transmission = 'Otomatis (AT)',
+    this.fuelType = 'Bensin (Pertamax)',
+    this.bodyCondition = 'Mulus (Bebas Baret)',
+    this.color = 'Hitam Metalik',
+    this.keyLocker = 'Loker Valet VIP-02',
   });
 
   ValetVehicle copyWith({
@@ -124,6 +136,12 @@ class ValetVehicle {
     String? note,
     String? phoneNumber,
     String? officerName,
+    String? imageUrl,
+    String? transmission,
+    String? fuelType,
+    String? bodyCondition,
+    String? color,
+    String? keyLocker,
   }) {
     return ValetVehicle(
       id: id ?? this.id,
@@ -139,6 +157,12 @@ class ValetVehicle {
       note: note ?? this.note,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       officerName: officerName ?? this.officerName,
+      imageUrl: imageUrl ?? this.imageUrl,
+      transmission: transmission ?? this.transmission,
+      fuelType: fuelType ?? this.fuelType,
+      bodyCondition: bodyCondition ?? this.bodyCondition,
+      color: color ?? this.color,
+      keyLocker: keyLocker ?? this.keyLocker,
     );
   }
 
@@ -157,6 +181,12 @@ class ValetVehicle {
         note: 'Kunci disimpan di loker VIP 02. Mobil siap jalan.',
         phoneNumber: '0812-8877-6655',
         officerName: 'Rizky Saputra',
+        imageUrl: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=800&q=80',
+        transmission: 'Otomatis (CVT)',
+        fuelType: 'Bensin (Pertamax Turbo)',
+        bodyCondition: 'Mulus / Bebas Baret',
+        color: 'Hitam Metalik',
+        keyLocker: 'Loker VIP-02',
       ),
       const ValetVehicle(
         id: 'val-002',
@@ -172,6 +202,12 @@ class ValetVehicle {
         note: 'Customer meminta mobil disiapkan di Lobi Barat GF.',
         phoneNumber: '0813-2211-9988',
         officerName: 'Fajar Hidayat',
+        imageUrl: 'https://images.unsplash.com/photo-1590362891991-f776e747a588?auto=format&fit=crop&w=800&q=80',
+        transmission: 'Otomatis (CVT)',
+        fuelType: 'Bensin (Pertamax)',
+        bodyCondition: 'Baret Halus Bumper Belakang',
+        color: 'Putih Mutiara',
+        keyLocker: 'Loker Reguler B-04',
       ),
       const ValetVehicle(
         id: 'val-003',
@@ -186,6 +222,12 @@ class ValetVehicle {
         note: 'Baru tiba di Lobi Drop-off. Pengemudi menyerahkan kunci.',
         phoneNumber: '0818-4455-6677',
         officerName: 'Rizky Saputra',
+        imageUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=800&q=80',
+        transmission: 'Otomatis (9G-Tronic)',
+        fuelType: 'Bensin (Pertamax Turbo)',
+        bodyCondition: 'Mulus Bersih / Cek Fisik OK',
+        color: 'Abu-abu Selenite',
+        keyLocker: 'Loker Drop-off Lobi',
       ),
       const ValetVehicle(
         id: 'val-004',
@@ -200,6 +242,12 @@ class ValetVehicle {
         note: 'Permintaan parkir di slot charger EV Lantai B1.',
         phoneNumber: '0811-9988-7766',
         officerName: 'Rizky Saputra',
+        imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
+        transmission: 'Single Speed (EV)',
+        fuelType: 'Listrik (Baterai 82%)',
+        bodyCondition: 'Mulus Tanpa Catatan',
+        color: 'Gravity Gold Matte',
+        keyLocker: 'Loker EV C-02',
       ),
       const ValetVehicle(
         id: 'val-005',
@@ -215,6 +263,12 @@ class ValetVehicle {
         note: 'Selesai serah terima di Lobi Utama oleh Petugas Fajar.',
         phoneNumber: '0812-3344-5566',
         officerName: 'Fajar Hidayat',
+        imageUrl: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=800&q=80',
+        transmission: 'Otomatis (Steptronic)',
+        fuelType: 'Bensin (Pertamax Turbo)',
+        bodyCondition: 'Mulus / Terawat Baik',
+        color: 'Black Sapphire',
+        keyLocker: 'Kunci Diserahkan',
       ),
     ];
   }
@@ -238,17 +292,17 @@ class VehicleTicket {
   const VehicleTicket({
     required this.plateNumber,
     required this.driverName,
-    required this.vehicleModel,
+    this.vehicleModel = 'Mobil Valet',
     required this.ticketNumber,
-    required this.slot,
-    required this.scanTime,
-    required this.officerName,
-    required this.paymentStatus,
-    required this.exitApprovalStatus,
+    this.slot = 'Area Valet',
+    this.scanTime = '8 Okt 2026',
+    this.officerName = 'Petugas Valet',
+    this.paymentStatus = 'Sudah Terverifikasi',
+    this.exitApprovalStatus = 'Disetujui',
     this.isApproved = false,
     this.approvedBy,
     this.approvalTime,
-    this.transactionStatus = 'Proses Verifikasi',
+    this.transactionStatus = 'Selesai',
   });
 
   // Data default screen 2 Figma
@@ -293,6 +347,7 @@ class OfficerNotification {
   final VehicleTicket ticket;
   final bool isRead;
   final bool isDetailOpen;
+  final ValetVehicleStatus? vehicleStatus;
 
   const OfficerNotification({
     required this.id,
@@ -303,7 +358,114 @@ class OfficerNotification {
     required this.ticket,
     this.isRead = false,
     this.isDetailOpen = true,
+    this.vehicleStatus,
   });
+
+  /// Membuat notifikasi otomatis dari perubahan status kendaraan
+  factory OfficerNotification.fromVehicleStatus({
+    required ValetVehicle vehicle,
+    required ValetVehicleStatus status,
+    String? customNote,
+  }) {
+    final now = DateTime.now();
+    final timeStr = '${now.hour}.${now.minute.toString().padLeft(2, '0')}';
+
+    String title;
+    String subtitle;
+    String author;
+
+    switch (status) {
+      case ValetVehicleStatus.akanDatang:
+        title = 'Mobil Baru Tiba (Mau Diparkir)';
+        subtitle = '${vehicle.plateNumber} · ${vehicle.driverName}';
+        author = 'Lobi Drop-off · ${vehicle.vehicleModel}';
+        break;
+      case ValetVehicleStatus.terparkir:
+        title = 'Kendaraan Terparkir di Slot';
+        subtitle = '${vehicle.plateNumber} · Slot ${vehicle.slot}';
+        author = 'Petugas ${vehicle.officerName} · ${vehicle.keyLocker}';
+        break;
+      case ValetVehicleStatus.mauDiambil:
+        title = 'Permintaan Ambil Kendaraan';
+        subtitle = '${vehicle.plateNumber} · Customer Menunggu di Lobi';
+        author = 'Pengemudi: ${vehicle.driverName} · Slot ${vehicle.slot}';
+        break;
+      case ValetVehicleStatus.sudahDiambil:
+        title = 'Kendaraan Selesai Keluar';
+        subtitle = '${vehicle.plateNumber} · Serah Terima Selesai';
+        author = 'Petugas ${vehicle.officerName} · Selesai';
+        break;
+    }
+
+    return OfficerNotification(
+      id: 'notif-${now.millisecondsSinceEpoch}',
+      title: title,
+      subtitle: subtitle,
+      time: timeStr,
+      authorInfo: author,
+      vehicleStatus: status,
+      isDetailOpen: false,
+      ticket: VehicleTicket(
+        plateNumber: vehicle.plateNumber,
+        driverName: vehicle.driverName,
+        vehicleModel: vehicle.vehicleModel,
+        ticketNumber: vehicle.ticketNumber,
+        slot: vehicle.slot,
+        officerName: vehicle.officerName,
+        paymentStatus: vehicle.paymentStatus,
+        exitApprovalStatus: status == ValetVehicleStatus.sudahDiambil
+            ? 'Keluar Disetujui'
+            : status.shortLabel,
+        isApproved: status == ValetVehicleStatus.sudahDiambil,
+        approvedBy: 'Sistem Valet Petugas',
+        approvalTime: timeStr,
+      ),
+    );
+  }
+
+  /// Menghasilkan daftar notifikasi awal berdasarkan status tiap kendaraan
+  static List<OfficerNotification> generateInitialNotifications(List<ValetVehicle> vehicles) {
+    final list = <OfficerNotification>[];
+
+    for (final v in vehicles) {
+      list.add(
+        OfficerNotification(
+          id: 'init-notif-${v.id}',
+          title: switch (v.status) {
+            ValetVehicleStatus.akanDatang => 'Mobil Baru Tiba (Mau Diparkir)',
+            ValetVehicleStatus.terparkir => 'Kendaraan Terparkir di Slot',
+            ValetVehicleStatus.mauDiambil => 'Permintaan Ambil Kendaraan',
+            ValetVehicleStatus.sudahDiambil => 'Kendaraan Selesai Keluar',
+          },
+          subtitle: '${v.plateNumber} · ${v.driverName}',
+          time: v.exitTime ?? v.entryTime,
+          authorInfo: switch (v.status) {
+            ValetVehicleStatus.akanDatang => 'Lobi Drop-off · ${v.vehicleModel}',
+            ValetVehicleStatus.terparkir => 'Slot ${v.slot} · ${v.keyLocker}',
+            ValetVehicleStatus.mauDiambil => 'Lobi Pick-up · Siapkan Mobil',
+            ValetVehicleStatus.sudahDiambil => 'Petugas ${v.officerName} · Selesai',
+          },
+          vehicleStatus: v.status,
+          isDetailOpen: v.status == ValetVehicleStatus.mauDiambil,
+          ticket: VehicleTicket(
+            plateNumber: v.plateNumber,
+            driverName: v.driverName,
+            vehicleModel: v.vehicleModel,
+            ticketNumber: v.ticketNumber,
+            slot: v.slot,
+            officerName: v.officerName,
+            paymentStatus: v.paymentStatus,
+            exitApprovalStatus: v.status.shortLabel,
+            isApproved: v.status == ValetVehicleStatus.sudahDiambil,
+            approvedBy: 'Sistem Petugas',
+            approvalTime: v.exitTime ?? v.entryTime,
+          ),
+        ),
+      );
+    }
+
+    return list;
+  }
 
   static final OfficerNotification sampleFigmaNotification = OfficerNotification(
     id: 'notif-1',
@@ -314,5 +476,6 @@ class OfficerNotification {
     ticket: VehicleTicket.sampleApprovedExit,
     isRead: false,
     isDetailOpen: true,
+    vehicleStatus: ValetVehicleStatus.sudahDiambil,
   );
 }

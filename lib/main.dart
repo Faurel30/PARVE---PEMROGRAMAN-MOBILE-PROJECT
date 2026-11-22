@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/theme/app_colors.dart';
+import 'core/services/supabase_service.dart';
 import 'presentation/screens/auth/welcome_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -13,6 +14,10 @@ void main() {
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
+
+  // Inisialisasi Supabase saat app dibuka (jika URL sudah diisi)
+  await SupabaseService.instance.initialize();
+
   runApp(const ParvePetugasApp());
 }
 
