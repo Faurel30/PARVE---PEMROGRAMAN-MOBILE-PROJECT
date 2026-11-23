@@ -207,21 +207,14 @@ class AuthStore {
     return SupabaseConfig.client;
   }
 
-  /// Menjalankan operasi database dengan client utama, dan otomatis retry
-  /// memakai `SupabaseConfig.secretClient` jika tabel terkunci RLS / 401
+  /// Menjalankan operasi database dengan client Supabase
   static Future<T?> _runDbOp<T>(
     Future<T> Function(SupabaseClient db) action,
   ) async {
-    final primary = await _getOrInitDb();
-    if (primary != null) {
-      try {
-        return await action(primary);
-      } catch (e) {
-        debugPrint('Primary Supabase client error, retrying with secretKey: $e');
-      }
-    }
+    final db = await _getOrInitDb();
+    if (db == null) return null;
     try {
-      return await action(SupabaseConfig.secretClient);
+      return await action(db);
     } catch (e) {
       debugPrint('Supabase operation failed: $e');
       return null;
