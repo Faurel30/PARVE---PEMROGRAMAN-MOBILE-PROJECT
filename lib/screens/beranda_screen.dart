@@ -21,6 +21,23 @@ class BerandaScreen extends StatefulWidget {
 }
 
 class _BerandaScreenState extends State<BerandaScreen> {
+  void _onSessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    AuthStore.sessionNotifier.addListener(_onSessionChanged);
+    AuthStore.ensureSessionLoaded();
+  }
+
+  @override
+  void dispose() {
+    AuthStore.sessionNotifier.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
   void _onBottomNavTap(int index) {
     if (index == 1) {
       Navigator.pushReplacement(

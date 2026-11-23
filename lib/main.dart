@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'core/app_colors.dart';
+import 'core/supabase_config.dart';
+import 'models/auth_store.dart';
 import 'screens/landing_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await SupabaseConfig.initialize();
+  await AuthStore.loadInitialDataFromSupabase();
+
   runApp(const ParveApp());
 }
 

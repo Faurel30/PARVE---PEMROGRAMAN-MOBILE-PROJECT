@@ -8,6 +8,7 @@ import '../widgets/booking_step_header.dart';
 import '../widgets/ticket_card.dart';
 import '../widgets/vehicle_illustration.dart';
 import 'ambil_kendaraan_screen.dart';
+import 'konfirmasi_terima_mobil_screen.dart';
 
 class PantauKendaraanScreen extends StatefulWidget {
   final ParkingTicket ticket;
@@ -156,6 +157,19 @@ class _PantauKendaraanScreenState extends State<PantauKendaraanScreen> {
     }
   }
 
+  Future<void> _openKonfirmasiTerimaMobil() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => KonfirmasiTerimaMobilScreen(
+          ticket: _ticket,
+          remainingBalanceAfterPay: AuthStore.walletBalance,
+          onTicketUpdated: _updateTicket,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -200,9 +214,15 @@ class _PantauKendaraanScreenState extends State<PantauKendaraanScreen> {
                 ),
               ),
               BookingStickyBottomBar(
-                icon: Icons.directions_car_outlined,
-                label: 'Ambil kendaraan · ${_ticket.formattedParkingFee}',
-                onTap: _openAmbilKendaraan,
+                icon: _ticket.isPickupRequested
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.directions_car_outlined,
+                label: _ticket.isPickupRequested
+                    ? 'Konfirmasi Penerimaan Mobil'
+                    : 'Ambil kendaraan · ${_ticket.formattedParkingFee}',
+                onTap: _ticket.isPickupRequested
+                    ? _openKonfirmasiTerimaMobil
+                    : _openAmbilKendaraan,
               ),
             ],
           ),

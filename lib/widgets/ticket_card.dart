@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../core/app_colors.dart';
 import '../models/ticket_model.dart';
 import 'vehicle_illustration.dart';
@@ -8,11 +10,7 @@ class TicketCard extends StatefulWidget {
   final ParkingTicket ticket;
   final VoidCallback? onVehicleTap;
 
-  const TicketCard({
-    super.key,
-    required this.ticket,
-    this.onVehicleTap,
-  });
+  const TicketCard({super.key, required this.ticket, this.onVehicleTap});
 
   @override
   State<TicketCard> createState() => _TicketCardState();
@@ -110,58 +108,39 @@ class _TicketCardState extends State<TicketCard> {
             ),
           ),
           if (ticket.isActive) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 22, 18, 22),
+            Container(
+              margin: const EdgeInsets.fromLTRB(18, 14, 18, 2),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.isDark
+                    ? const Color(0xFF222621)
+                    : const Color(0xFFF8F7F3),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.isDark
+                      ? const Color(0xFF333830)
+                      : const Color(0xFFEBE6DA),
+                ),
+              ),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Image.asset(
-                      'assets/images/qr_code.png',
-                      width: 82,
-                      height: 82,
-                      fit: BoxFit.contain,
-                    ),
+                  Icon(
+                    Icons.directions_car_filled_outlined,
+                    size: 16,
+                    color: AppColors.goldText,
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 9),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        StatusBadge(text: ticket.statusText, isActive: true),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Tunjukkan tiket ini saat\nmengambil mobil.',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12.6,
-                            height: 1.35,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Kode contoh • jangan dibagikan',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11.0,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'Tunjukkan nomor tiket ini ke petugas valet lobi saat pengambilan mobil.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11.8,
+                        height: 1.3,
+                      ),
                     ),
                   ),
                 ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: Divider(
-                height: 1,
-                thickness: 1,
-                color: AppColors.divider,
               ),
             ),
           ],
@@ -172,9 +151,10 @@ class _TicketCardState extends State<TicketCard> {
                 VehicleSummaryRow(
                   ticket: ticket,
                   onVehicleTap: widget.onVehicleTap,
-                  trailing: !ticket.isActive
-                      ? StatusBadge(text: ticket.statusText, isActive: false)
-                      : null,
+                  trailing: StatusBadge(
+                    text: ticket.statusText,
+                    isActive: ticket.isActive,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 TicketDetailRow(label: 'Waktu masuk', value: ticket.entryTime),
@@ -280,10 +260,7 @@ class VehicleSummaryRow extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 ticket.vehicleSpecs,
-                style: TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 12.2,
-                ),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12.2),
               ),
             ],
           ),
@@ -352,10 +329,7 @@ class TicketDetailRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13.2,
-          ),
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 13.2),
         ),
         Text(
           value,

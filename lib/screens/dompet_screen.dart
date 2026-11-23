@@ -21,6 +21,23 @@ class _DompetScreenState extends State<DompetScreen> {
   // 0: Semua, 1: Masuk, 2: Keluar
   int _filterIndex = 0;
 
+  void _onSessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    AuthStore.sessionNotifier.addListener(_onSessionChanged);
+    AuthStore.ensureSessionLoaded();
+  }
+
+  @override
+  void dispose() {
+    AuthStore.sessionNotifier.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
   List<WalletTransaction> get _filteredTransactions {
     final all = AuthStore.walletTransactions;
     if (_filterIndex == 1) {

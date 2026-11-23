@@ -27,6 +27,23 @@ class _AktivitasScreenState extends State<AktivitasScreen> {
 
   ParkingTicket get _activeTicket => AuthStore.activeTicket;
 
+  void _onSessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    AuthStore.sessionNotifier.addListener(_onSessionChanged);
+    AuthStore.ensureSessionLoaded();
+  }
+
+  @override
+  void dispose() {
+    AuthStore.sessionNotifier.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
   void _updateActiveTicket(ParkingTicket updated) {
     setState(() => AuthStore.activeTicket = updated);
   }

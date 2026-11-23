@@ -88,6 +88,8 @@ class _KonfirmasiBayarScreenState extends State<KonfirmasiBayarScreen> {
       ],
     );
 
+    AuthStore.syncActiveTicketToSupabase();
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(

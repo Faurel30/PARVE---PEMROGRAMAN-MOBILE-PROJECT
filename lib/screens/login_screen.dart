@@ -27,14 +27,21 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isEmailMode = false;
   bool _obscurePassword = true;
 
+  late final UserAccount? _latestAccount = AuthStore.registeredUsers.isNotEmpty
+      ? AuthStore.registeredUsers.last
+      : null;
+
   late final TextEditingController _phoneController = TextEditingController(
-    text: widget.initialPhone ?? '+62 812 3456 7890',
+    text: widget.initialPhone ?? _latestAccount?.phone ?? '+62 812 3456 7890',
   );
   late final TextEditingController _emailController = TextEditingController(
-    text: widget.initialEmail ?? 'dimas.pratama@example.com',
+    text:
+        widget.initialEmail ??
+        _latestAccount?.email ??
+        'dimas.pratama@example.com',
   );
   late final TextEditingController _passwordController = TextEditingController(
-    text: widget.initialPassword ?? 'parve2026',
+    text: widget.initialPassword ?? _latestAccount?.password ?? 'parve2026',
   );
 
   @override

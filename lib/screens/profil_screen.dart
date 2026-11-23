@@ -25,9 +25,15 @@ class _ProfilScreenState extends State<ProfilScreen> {
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _emailCtrl;
 
+  void _onSessionChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    AuthStore.sessionNotifier.addListener(_onSessionChanged);
+    AuthStore.ensureSessionLoaded();
     final user = AuthStore.currentUser;
     _nameCtrl = TextEditingController(text: user?.fullName ?? 'Dimas Pratama');
     _phoneCtrl = TextEditingController(
@@ -40,6 +46,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
 
   @override
   void dispose() {
+    AuthStore.sessionNotifier.removeListener(_onSessionChanged);
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _emailCtrl.dispose();

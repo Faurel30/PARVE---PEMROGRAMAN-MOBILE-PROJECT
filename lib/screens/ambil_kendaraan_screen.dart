@@ -11,7 +11,7 @@ import '../widgets/payment_method_dropdown.dart';
 import '../widgets/ticket_card.dart';
 import '../widgets/vehicle_illustration.dart';
 import 'isi_saldo_screen.dart';
-import 'pengambilan_selesai_screen.dart';
+import 'konfirmasi_terima_mobil_screen.dart';
 
 class AmbilKendaraanScreen extends StatefulWidget {
   final ParkingTicket ticket;
@@ -79,37 +79,42 @@ class _AmbilKendaraanScreenState extends State<AmbilKendaraanScreen> {
     final remainingBalance = AuthStore.walletBalance;
     final frozenSecs = _ticket.liveElapsedSeconds;
 
-    final updated = AuthStore.completeActiveTicket(
-      _ticket.copyWith(
-        walletBalance: remainingBalance,
-        parkingHours: finalHours,
-        currentDuration: _ticket.liveDurationText,
-        pickupTime: '$pickupHour WIB',
-        frozenElapsedSeconds: frozenSecs,
-        valetPaymentMethod: _selectedMethod.title,
-        statusText: 'Selesai',
-        isActive: false,
-        isPickupRequested: true,
-        journeySteps: [
-          ..._ticket.journeySteps,
-          VehicleJourneyStep(
-            title:
-                'Permintaan ambil & bayar ($paidFee via ${_selectedMethod.shortName})',
-            subtitle: _ticket.pickupLobby,
-            time: pickupHour,
-          ),
-        ],
-      ),
+    final updated = _ticket.copyWith(
+      walletBalance: remainingBalance,
+      parkingHours: finalHours,
+      currentDuration: _ticket.liveDurationText,
+      pickupTime: '$pickupHour WIB',
+      frozenElapsedSeconds: frozenSecs,
+      valetPaymentMethod: _selectedMethod.title,
+      statusText: 'Siap di lobi',
+      isActive: true,
+      isPickupRequested: true,
+      journeySteps: [
+        ..._ticket.journeySteps,
+        VehicleJourneyStep(
+          title:
+              'Permintaan ambil & bayar ($paidFee via ${_selectedMethod.shortName})',
+          subtitle: _ticket.pickupLobby,
+          time: pickupHour,
+        ),
+        VehicleJourneyStep(
+          title: 'Mobil diantar ke ${_ticket.pickupLobby}',
+          subtitle: 'Petugas ${_ticket.valetOfficerName}',
+          time: pickupHour,
+        ),
+      ],
     );
+    AuthStore.syncPickupRequestToSupabase(updated);
     setState(() => _ticket = updated);
     widget.onTicketUpdated?.call(updated);
 
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PengambilanSelesaiScreen(
+        builder: (context) => KonfirmasiTerimaMobilScreen(
           ticket: updated,
           remainingBalanceAfterPay: remainingBalance,
+          onTicketUpdated: widget.onTicketUpdated,
         ),
       ),
     );
