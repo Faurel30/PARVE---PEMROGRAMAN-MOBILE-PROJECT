@@ -1,0 +1,277 @@
+/* Palet Warna Resmi PARVE (Sinkron dengan lib/core/app_colors.dart) */
+:root,
+[data-theme="light"] {
+  --bg-page: #f7f7f4;
+  --surface: #ffffff;
+  --surface-subtle: #f4f5f1;
+  --hero-dark: #20231f;
+  --dark-primary: #20231f;
+  --on-gold: #20231f;
+  --gold-text: #c9ab68;
+  --gold-button: #d4b46c;
+  --gold-hover: #c5a358;
+  --card-border: #e7e9e1;
+  --divider: #e8eae3;
+  --text-secondary: #7e807c;
+  --text-muted: #8e918c;
+  --badge-bg: #eaf3ed;
+  --badge-green: #38705c;
+  --nav-pill-bg: #f4eddd;
+  --nav-active: #6b5832;
+  --soft-gold-banner: #f3ece0;
+  --soft-gold-card: #f7f1e4;
+  --danger-bg: #fdecec;
+  --danger-text: #b42318;
+  --warn-bg: #fef6e4;
+  --warn-text: #9a6700;
+  --shadow-sm: 0 2px 8px rgba(32, 35, 31, 0.05);
+  --shadow-md: 0 10px 30px rgba(32, 35, 31, 0.12);
+}
+
+[data-theme="dark"] {
+  --bg-page: #151715;
+  --surface: #20231f;
+  --surface-subtle: #292d28;
+  --hero-dark: #262a25;
+  --dark-primary: #f3f3ee;
+  --on-gold: #20231f;
+  --gold-text: #c9ab68;
+  --gold-button: #d4b46c;
+  --gold-hover: #e0c27b;
+  --card-border: #323630;
+  --divider: #2d312b;
+  --text-secondary: #a5a8a2;
+  --text-muted: #8c9089;
+  --badge-bg: #1f352b;
+  --badge-green: #69c89e;
+  --nav-pill-bg: #352f22;
+  --nav-active: #e0c27b;
+  --soft-gold-banner: #2d271c;
+  --soft-gold-card: #2b251b;
+  --danger-bg: #3a1f21;
+  --danger-text: #f98c86;
+  --warn-bg: #382e18;
+  --warn-text: #f3c969;
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 14px 36px rgba(0, 0, 0, 0.45);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--dark-primary);
+  line-height: 1.5;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.muted-text {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--gold-button), var(--gold-text));
+  color: var(--on-gold);
+  font-weight: 800;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* Tombol */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-sm {
+  padding: 7px 12px;
+  font-size: 0.82rem;
+  border-radius: 8px;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn-gold {
+  background: var(--gold-button);
+  color: var(--on-gold);
+}
+.btn-gold:hover {
+  background: var(--gold-hover);
+  transform: translateY(-1px);
+}
+
+.btn-subtle {
+  background: var(--surface-subtle);
+  color: var(--dark-primary);
+  border-color: var(--card-border);
+}
+.btn-subtle:hover {
+  border-color: var(--gold-text);
+}
+
+.btn-outline-light {
+  background: transparent;
+  color: #f3f3ee;
+  border-color: rgba(243, 243, 238, 0.25);
+}
+.btn-outline-light:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+.btn-danger:hover {
+  filter: brightness(0.95);
+}
+
+.icon-btn {
+  background: var(--surface-subtle);
+  color: var(--dark-primary);
+  border: 1px solid var(--card-border);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Form Elements */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dark-primary);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+select,
+.input-select {
+  width: 100%;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+  background: var(--surface);
+  color: var(--dark-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--gold-text);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.badge-green {
+  background: var(--badge-bg);
+  color: var(--badge-green);
+}
+
+.badge-gold {
+  background: var(--nav-pill-bg);
+  color: var(--nav-active);
+}
+
+.badge-warn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.badge-danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.badge-muted {
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+}
+
+/* Toast Notifications */
+.toast-container {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 2000;
+}
+
+.toast {
+  background: var(--hero-dark);
+  color: #f3f3ee;
+  border-left: 4px solid var(--gold-button);
+  padding: 12px 16px;
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  font-size: 0.88rem;
+  min-width: 260px;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

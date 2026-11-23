@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Admin — PARVE</title>
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <span class="logo-mark">P</span>
+          <div>
+            <strong>PARVE</strong>
+            <small>Admin Panel</small>
+          </div>
+        </div>
+        <button id="closeSidebarBtn" class="icon-btn mobile-only" type="button">✕</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-section="overview" type="button">
+          <span>📊</span> Ringkasan
+        </button>
+        <button class="nav-item" data-section="tickets" type="button">
+          <span>🎫</span> Tiket &amp; Valet Aktif
+          <span id="navActiveBadge" class="nav-badge">0</span>
+        </button>
+        <button class="nav-item" data-section="malls" type="button">
+          <span>🏢</span> Lokasi &amp; Slot Mall
+        </button>
+        <button class="nav-item" data-section="transactions" type="button">
+          <span>💳</span> Transaksi &amp; Pembayaran
+        </button>
+        <button class="nav-item" data-section="users" type="button">
+          <span>👥</span> Pengguna &amp; Kendaraan
+        </button>
+        <button class="nav-item" data-section="settings" type="button">
+          <span>⚙️</span> Tarif &amp; Petugas
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="admin-profile">
+          <div class="avatar">AD</div>
+          <div>
+            <div id="adminNameDisplay" class="admin-name">Admin PARVE</div>
+            <div class="admin-role">Super Administrator</div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="btn btn-outline-light btn-full" type="button">
+          Keluar
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="main-wrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="sidebarToggle" class="icon-btn mobile-only" type="button">☰</button>
+          <div>
+            <h1 id="pageTitle">Ringkasan Operasional</h1>
+            <p id="liveDateTime" class="muted-text">Memuat waktu WIB...</p>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div class="search-box">
+            <input
+              type="search"
+              id="globalSearch"
+              placeholder="Cari kode tiket, plat, mall..."
+            />
+          </div>
+          <button id="themeToggleBtn" class="btn btn-subtle" type="button">
+            🌙 Gelap
+          </button>
+          <button id="openNewTicketBtn" class="btn btn-gold" type="button">
+            + Tiket Valet
+          </button>
+        </div>
+      </header>
+
+      <main class="content">
+        <!-- 1. RINGKASAN -->
+        <section id="section-overview" class="page-section active">
+          <div class="kpi-grid" id="overviewKpis"></div>
+
+          <div class="overview-grid">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3>Okupansi Slot 5 Mall Resmi</h3>
+                  <p class="muted-text">Kapasitas seragam 15 slot/mall • 10.00–22.00 WIB</p>
+                </div>
+                <button class="btn btn-subtle btn-sm" data-goto="malls" type="button">
+                  Kelola Mall
+                </button>
+              </div>
+              <div id="overviewMallList" class="mall-mini-list"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3>Tiket Aktif Terbaru</h3>
+                  <p class="muted-text">Stopwatch durasi berjalan real-time</p>
+                </div>
+                <button class="btn btn-subtle btn-sm" data-goto="tickets" type="button">
+                  Lihat Semua
+                </button>
+              </div>
+              <div id="overviewRecentTickets" class="recent-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. TIKET & VALET -->
+        <section id="section-tickets" class="page-section">
+          <div class="card">
+            <div class="card-header wrap">
+              <div>
+                <h3>Manajemen Tiket Parkir &amp; Valet</h3>
+                <p class="muted-text">
+                  Pantau durasi parkir real-time, perbarui status perjalanan, dan selesaikan pengambilan kendaraan.
+                </p>
+              </div>
+              <div class="toolbar">
+                <select id="filterTicketStatus" class="input-select">
+                  <option value="all">Semua Status</option>
+                  <option value="active">Aktif Saja</option>
+                  <option value="Diserahkan ke petugas">Diserahkan ke petugas</option>
+                  <option value="Terparkir aman">Terparkir aman</option>
+                  <option value="Menuju lobi penjemputan">Menuju lobi penjemputan</option>
+                  <option value="Selesai">Selesai (Riwayat)</option>
+                </select>
+                <select id="filterTicketMall" class="input-select">
+                  <option value="all">Semua Mall</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Kode Tiket</th>
+                    <th>Pelanggan &amp; Kendaraan</th>
+                    <th>Lokasi &amp; Slot</th>
+                    <th>Petugas</th>
+                    <th>Durasi &amp; Biaya Parkir</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="ticketsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. LOKASI & SLOT MALL -->
+        <section id="section-malls" class="page-section">
+          <div class="section-banner">
+            <div>
+              <h3>Monitoring Kapasitas Slot Valet</h3>
+              <p class="muted-text">
+                Slot berkurang otomatis saat tiket aktif dibuat dan kembali bertambah saat kendaraan selesai diambil. Anda juga dapat menyesuaikan slot secara manual.
+              </p>
+            </div>
+            <div id="mallSummaryPill" class="gold-pill">Total 0/75 Terisi</div>
+          </div>
+          <div id="mallsGrid" class="malls-grid"></div>
+        </section>
+
+        <!-- 4. TRANSAKSI & DOMPET -->
+        <section id="section-transactions" class="page-section">
+          <div class="kpi-grid kpi-3" id="transactionKpis"></div>
+
+          <div class="card">
+            <div class="card-header wrap">
+              <div>
+                <h3>Riwayat Transaksi &amp; Pembayaran</h3>
+                <p class="muted-text">Dompet PARVE, QRIS Midtrans Sandbox, E-Wallet &amp; Virtual Account</p>
+              </div>
+              <div class="toolbar">
+                <select id="filterTrxType" class="input-select">
+                  <option value="all">Semua Jenis</option>
+                  <option value="Layanan valet">Layanan valet</option>
+                  <option value="Parkir gedung">Parkir gedung</option>
+                  <option value="Isi saldo">Isi saldo</option>
+                </select>
+                <select id="filterTrxMethod" class="input-select">
+                  <option value="all">Semua Metode</option>
+                  <option value="Dompet PARVE">Dompet PARVE</option>
+                  <option value="QRIS">QRIS</option>
+                  <option value="GoPay">GoPay</option>
+                  <option value="ShopeePay">ShopeePay</option>
+                  <option value="OVO">OVO</option>
+                  <option value="BCA">BCA VA</option>
+                  <option value="BRI">BRI VA</option>
+                  <option value="Mandiri">Mandiri VA</option>
+                </select>
+                <button id="exportCsvBtn" class="btn btn-gold btn-sm" type="button">
+                  ⬇ Export CSV
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID Transaksi</th>
+                    <th>Tanggal &amp; Waktu</th>
+                    <th>Jenis Layanan</th>
+                    <th>Keterangan</th>
+                    <th>Metode Pembayaran</th>
+                    <th>Nominal</th>
+                  </tr>
+                </thead>
+                <tbody id="transactionsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. PENGGUNA & KENDARAAN -->
+        <section id="section-users" class="page-section">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3>Pengguna &amp; Kendaraan Terdaftar</h3>
+                <p class="muted-text">Kelola data pelanggan, kendaraan utama, dan top-up manual Dompet PARVE.</p>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Pelanggan</th>
+                    <th>Kontak</th>
+                    <th>Kendaraan Utama</th>
+                    <th>Plat Nomor</th>
+                    <th>Saldo Dompet PARVE</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. PENGATURAN TARIF & PETUGAS -->
+        <section id="section-settings" class="page-section">
+          <div class="settings-grid">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3>Pengaturan Tarif Layanan</h3>
+                  <p class="muted-text">Berlaku langsung untuk perhitungan tiket baru &amp; berjalan.</p>
+                </div>
+              </div>
+              <form id="tariffForm" class="stack-form">
+                <div class="form-group">
+                  <label for="inputValetFee">Biaya Layanan Valet (Rp)</label>
+                  <input type="number" id="inputValetFee" min="0" step="1000" required />
+                </div>
+                <div class="form-group">
+                  <label for="inputHourlyRate">Tarif Parkir Gedung per Jam (Rp)</label>
+                  <input type="number" id="inputHourlyRate" min="0" step="1000" required />
+                </div>
+                <button type="submit" class="btn btn-gold">Simpan Pengaturan Tarif</button>
+              </form>
+
+              <hr class="divider" />
+              <div class="danger-zone">
+                <div>
+                  <strong>Reset Data Simulasi</strong>
+                  <p class="muted-text">Kembalikan seluruh data tiket, slot, transaksi, dan tarif ke kondisi awal demo.</p>
+                </div>
+                <button id="resetDemoBtn" class="btn btn-danger btn-sm" type="button">
+                  Reset Data Demo
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3>Daftar Petugas Valet</h3>
+                  <p class="muted-text">Petugas terverifikasi yang ditugaskan di 5 mall PARVE.</p>
+                </div>
+              </div>
+
+              <form id="officerForm" class="inline-form">
+                <input
+                  type="text"
+                  id="newOfficerName"
+                  placeholder="Nama petugas baru..."
+                  required
+                />
+                <select id="newOfficerMall" class="input-select" required></select>
+                <button type="submit" class="btn btn-gold btn-sm">Tambah</button>
+              </form>
+
+              <div id="officersList" class="officers-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: TAMBAH TIKET VALET BARU -->
+  <div id="ticketModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Buat Tiket Valet Baru</h3>
+        <button class="icon-btn" data-close-modal="ticketModal" type="button">✕</button>
+      </div>
+      <form id="newTicketForm" class="stack-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ntCustomer">Nama Pelanggan</label>
+            <input type="text" id="ntCustomer" placeholder="Contoh: Dimas Pratama" required />
+          </div>
+          <div class="form-group">
+            <label for="ntMall">Lokasi Mall</label>
+            <select id="ntMall" required></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ntVehicle">Nama Kendaraan</label>
+            <input type="text" id="ntVehicle" placeholder="Contoh: Toyota Veloz" required />
+          </div>
+          <div class="form-group">
+            <label for="ntPlate">Plat Nomor</label>
+            <input type="text" id="ntPlate" placeholder="Contoh: B 2148 SJD" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ntSpecs">Warna &amp; Tahun</label>
+            <input type="text" id="ntSpecs" placeholder="Contoh: Putih • 2024" value="Putih • 2024" required />
+          </div>
+          <div class="form-group">
+            <label for="ntOfficer">Petugas Valet</label>
+            <select id="ntOfficer" required></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="ntPayment">Metode Pembayaran Valet (Dibayar di Muka)</label>
+          <select id="ntPayment" required>
+            <option value="Dompet PARVE">Dompet PARVE</option>
+            <option value="QRIS">QRIS (Midtrans Sandbox)</option>
+            <option value="GoPay">GoPay</option>
+            <option value="ShopeePay">ShopeePay</option>
+            <option value="OVO">OVO</option>
+            <option value="BCA">Bank BCA (VA)</option>
+            <option value="BRI">Bank BRI (VA)</option>
+            <option value="Mandiri">Bank Mandiri (VA)</option>
+          </select>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-subtle" data-close-modal="ticketModal" type="button">Batal</button>
+          <button class="btn btn-gold" type="submit">Simpan &amp; Terbitkan Tiket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: DETAIL & UPDATE STATUS TIKET -->
+  <div id="detailModal" class="modal-backdrop hidden">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 id="detailTicketCode">PV-000000-0000</h3>
+          <p id="detailTicketSubtitle" class="muted-text"></p>
+        </div>
+        <button class="icon-btn" data-close-modal="detailModal" type="button">✕</button>
+      </div>
+      <div id="detailModalBody"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: TOP UP SALDO PELANGGAN -->
+  <div id="topupModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Isi Saldo Dompet PARVE</h3>
+        <button class="icon-btn" data-close-modal="topupModal" type="button">✕</button>
+      </div>
+      <form id="topupForm" class="stack-form">
+        <input type="hidden" id="topupUserId" />
+        <p id="topupUserLabel" class="muted-text"></p>
+        <div class="form-group">
+          <label for="topupAmount">Nominal Top-Up (Rp)</label>
+          <input type="number" id="topupAmount" min="10000" step="10000" value="100000" required />
+        </div>
+        <div class="form-group">
+          <label for="topupMethod">Metode Sumber Dana</label>
+          <select id="topupMethod">
+            <option value="BCA">Bank BCA (VA)</option>
+            <option value="BRI">Bank BRI (VA)</option>
+            <option value="Mandiri">Bank Mandiri (VA)</option>
+            <option value="QRIS">QRIS</option>
+            <option value="GoPay">GoPay</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-subtle" data-close-modal="topupModal" type="button">Batal</button>
+          <button class="btn btn-gold" type="submit">Proses Isi Saldo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
